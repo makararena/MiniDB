@@ -1,8 +1,0 @@
-/Applications/CLion.app/Contents/bin/cmake/mac/aarch64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/Applications/CLion.app/Contents/bin/ninja/mac/aarch64/ninja -G Ninja -S /Users/ivanivsnov/CLionProjects/DatabaseProject -B /Users/ivanivsnov/CLionProjects/DatabaseProject/cmake-build-debug
--- {fmt} version: 11.0.2
--- Build type: Debug
--- Performing Test HAS_NULLPTR_WARNING
--- Performing Test HAS_NULLPTR_WARNING - Success
--- Configuring done (2.7s)
--- Generating done (0.0s)
--- Build files have been written to: /Users/ivanivsnov/CLionProjects/DatabaseProject/cmake-build-debug
