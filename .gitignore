@@ -1,18 +1,44 @@
-# Build files
+# Build directories and files
 build/
 cmake-build-debug/
 *.o
 *.obj
 *.exe
+*.out
 
-# IDE files
+# IDE-specific files
 .idea/
 *.iml
+*.ipch
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln
+*.ncb
+*.db
+*.opendb
 
-# Logs
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+compile_commands.json
+
+# Log files
 *.log
 
-# System-specific
+# Temporary system files
 .DS_Store
 Thumbs.db
 
+# Backup files
+*.bak
+*.swp
+*.swo
+*~
+
+# Temporary editor files
+*.tmp
+*.vscode/

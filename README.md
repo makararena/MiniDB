@@ -1,4 +1,4 @@
-# Database-in-C
+# MiniDB
 
 A simple database implementation written in **C++**, created for educational purposes. This project showcases how to build a basic file-based database with functionalities like CRUD operations (Create, Read, Update, Delete) and demonstrates modular programming with `database.cpp` and `database.h`.
 
