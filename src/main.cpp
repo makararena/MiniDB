@@ -1,29 +1,3 @@
-// main.cpp
-
-/*
-    Simple In-Memory Database Application
-
-    This application functions as a simple database that you can interact with using commands.
-    Data is stored in memory using simple data structures.
-
-    The custom query language supports the following commands:
-
-    - DDL (Data Definition Language):
-        - CREATE TABLE table_name (column1 TYPE1, column2 TYPE2, ...);
-        - DROP TABLE table_name;
-
-    - DML (Data Manipulation Language):
-        - INSERT INTO table_name VALUES (value1, value2, ...);
-
-    - DQL (Data Query Language):
-        - SELECT * FROM table_name;
-        - SELECT column1, column2 FROM table_name;
-
-    - Backup Commands:
-        - SAVE filename;
-        - LOAD filename;
-*/
-
 #include "database.h"
 #include <iostream>
 #include <string>

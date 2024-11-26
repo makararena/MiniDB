@@ -1,0 +1,18 @@
+# Build files
+build/
+cmake-build-debug/
+*.o
+*.obj
+*.exe
+
+# IDE files
+.idea/
+*.iml
+
+# Logs
+*.log
+
+# System-specific
+.DS_Store
+Thumbs.db
+
