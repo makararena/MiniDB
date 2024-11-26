@@ -1,0 +1,22 @@
+> CREATE TABLE students (id INTEGER, name STRING);
+Table 'students' created successfully.
+> INSERT INTO students VALUES (1, 'Alice');
+Row inserted into 'students' successfully.
+> INSERT INTO students VALUES (2, 'Bob');
+Row inserted into 'students' successfully.
+> SELECT * FROM students;
+id      name
+1       Alice
+2       Bob
+> ALTER TABLE students ADD COLUMN age INTEGER;
+Table 'students' altered successfully.
+> INSERT INTO students VALUES (3, 'Charlie', 20);
+Row inserted into 'students' successfully.
+> SELECT * FROM students;
+id      name    age
+1       Alice   0
+2       Bob     0
+3       Charlie 20
+> SAVE TO mydatabase.db;
+Database saved to 'mydatabase.db' successfully.
+> EXIT

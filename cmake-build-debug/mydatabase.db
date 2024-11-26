@@ -1,0 +1,4 @@
+TABLE students
+COLUMNS id INTEGER name STRING 
+ROW 1 Alice 
+ROW 2 Bob 
