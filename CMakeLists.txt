@@ -13,5 +13,5 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fmt)
 
-add_executable(SimpleDatabase main.cpp database.cpp)
+add_executable(SimpleDatabase src/main.cpp src/database.cpp)
 target_link_libraries(SimpleDatabase fmt)

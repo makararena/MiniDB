@@ -1,5 +1,5 @@
-1. first of all we need to change the data save to different datatypes because saving only in varchar is highly non-optimized
-2. SELECT right now cant have 2 fields
+1. first of all we need to change the data save to different datatypes because saving only in varchar is highly non-optimized (+-)
+2. SELECT right now cant have 2 fields (+)
 3. i will need to add relations between tables somehow (the possibility to connect two tables)
 4. i will need to enable adding some columns to the database
 5. where should work anytime we want so we need to add (and, or, not operands)

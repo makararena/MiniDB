@@ -1,9 +1,9 @@
 // database.cpp
 
+#include <iostream>
 #include "database.h"
 #include <sstream>
 #include <fstream>
-#include <algorithm>
 #include <fmt/format.h>
 
 // Helper functions (https://stackoverflow.com/questions/216823/how-to-trim-a-stdstring)
@@ -42,6 +42,145 @@ std::vector<std::string> split(const std::string& s, char delimiter) {
     return tokens;
 }
 
+// Removes the trailing semicolon from a string, if present
+std::string removeTrailingSemicolon(const std::string& str) {
+    if (!str.empty() && str.back() == ';') {
+        return str.substr(0, str.size() - 1); // Return the string without the last character
+    }
+    return str; // Return the original string if no semicolon is found
+}
+
+std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::string& wherePart) {
+    std::vector<std::pair<std::string, Condition>> conditions; // Resulting list of parsed conditions
+    std::vector<std::string> tokens = split(wherePart, ' ');   // Split the `WHERE` clause into tokens by spaces
+
+    std::string logicalOp; // Current logical operator between conditions (e.g., AND, OR, NOT)
+    std::string currentColumn, currentOp, currentValue; // Components of a condition
+    bool inCondition = false; // Indicates if we are building a condition
+    bool inValue = false;     // Indicates if we are processing a multi-word value
+    std::string valueBuffer;  // Temporary storage for multi-word string values
+
+    // Iterate through each token in the WHERE clause
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        std::string token = tokens[i];
+
+        // Check if the token is a logical operator
+        if (token == "AND" || token == "OR" || token == "NOT") {
+            if (inCondition) {
+                // Finalize the current condition before moving to the next
+                Condition cond{currentColumn, currentOp, currentValue, (logicalOp == "NOT")};
+                conditions.emplace_back(logicalOp, cond); // Add the condition and logical operator to the list
+                inCondition = false; // Reset for the next condition
+            }
+            logicalOp = token; // Update the current logical operator
+        } else {
+            // If it's not a logical operator, build a condition
+            if (!inCondition) {
+                // Start a new condition
+                inCondition = true;
+                currentColumn = token; // First token is the column name
+            } else if (currentOp.empty()) {
+                // Second token is the operator (e.g., =, >, <)
+                currentOp = token;
+            } else {
+                // Remaining tokens are part of the value
+                if (token.front() == '\'' || inValue) {
+                    // If the value starts with a single quote or we are in a multi-word value
+                    inValue = true; // Mark as inside a multi-word value
+                    valueBuffer += (valueBuffer.empty() ? "" : " ") + token; // Append token to the value buffer
+                    if (token.back() == '\'') {
+                        // If the value ends with a single quote, finalize the value
+                        currentValue = valueBuffer.substr(1, valueBuffer.size() - 2); // Strip the surrounding quotes
+                        valueBuffer.clear(); // Clear the buffer
+                        inValue = false;     // Exit multi-word value mode
+                    }
+                } else {
+                    // If the value is a simple token (not quoted)
+                    currentValue = token;
+                }
+            }
+        }
+    }
+
+    // Finalize the last condition if any
+    if (inCondition) {
+        Condition cond{currentColumn, currentOp, currentValue, (logicalOp == "NOT")};
+        conditions.emplace_back(logicalOp, cond); // Add the final condition
+    }
+
+    return conditions; // Return the list of parsed conditions
+}
+
+// Helper: Evaluate a condition for a single row
+bool evaluateCondition(const Row& row, const Table& table, const Condition& cond) {
+    auto colIt = std::find_if(
+        table.columns.begin(),
+        table.columns.end(),
+        [&](const Column& col) { return col.name == cond.column; }
+    );
+
+    if (colIt == table.columns.end()) {
+        throw std::runtime_error("Column '" + cond.column + "' does not exist.");
+    }
+
+    size_t colIndex = std::distance(table.columns.begin(), colIt);
+    const Value& value = row.values[colIndex];
+
+    bool result = false;
+    try {
+        if (std::holds_alternative<int>(value)) {
+            int intValue = std::get<int>(value);
+            int condValue = std::stoi(cond.value);
+            if (cond.op == "=") result = (intValue == condValue);
+            else if (cond.op == ">") result = (intValue > condValue);
+            else if (cond.op == "<") result = (intValue < condValue);
+        } else if (std::holds_alternative<float>(value)) {
+            float floatValue = std::get<float>(value);
+            float condValue = std::stof(cond.value);
+            if (cond.op == "=") result = (floatValue == condValue);
+            else if (cond.op == ">") result = (floatValue > condValue);
+            else if (cond.op == "<") result = (floatValue < condValue);
+        } else if (std::holds_alternative<char>(value)) {
+            char charValue = std::get<char>(value);
+            if (cond.op == "=") result = (charValue == cond.value[0]);
+        } else if (std::holds_alternative<std::string>(value)) {
+            const std::string& strValue = std::get<std::string>(value);
+            if (cond.op == "=") result = (strValue == cond.value);
+        }
+    } catch (...) {
+        throw std::runtime_error("Type mismatch in WHERE clause: Cannot compare '" + cond.value + "' to column '" + cond.column + "'");
+    }
+
+    return cond.negate ? !result : result;
+}
+
+// Helper: Apply WHERE clause to rows
+std::vector<Row> filterRows(const Table& table, const std::vector<std::pair<std::string, Condition>>& conditions) {
+    std::vector<Row> filteredRows;
+
+    for (const auto& row : table.rows) {
+        bool overallResult = (conditions.empty() || conditions[0].first.empty()) ? true : false;
+
+        for (const auto& [logicalOp, cond] : conditions) {
+            bool condResult = evaluateCondition(row, table, cond);
+
+            if (logicalOp == "AND") {
+                overallResult = overallResult && condResult;
+            } else if (logicalOp == "OR") {
+                overallResult = overallResult || condResult;
+            } else {
+                overallResult = condResult; // First condition
+            }
+        }
+
+        if (overallResult) {
+            filteredRows.push_back(row);
+        }
+    }
+
+    return filteredRows;
+}
+
 // Database class implementation
 
 // This is the constructor for the Database class.
@@ -55,6 +194,12 @@ DataType Database::parseDataType(const std::string& typeStr) {
         return DataType::INTEGER;
     } else if (upperTypeStr == "VARCHAR") {
         return DataType::VARCHAR;
+    } else if (upperTypeStr == "DATE") { // New case
+        return DataType::DATE;
+    } else if (upperTypeStr == "CHAR") { // New case
+        return DataType::CHAR;
+    } else if (upperTypeStr == "FLOAT") { // New case
+        return DataType::FLOAT;
     } else {
         throw std::runtime_error("Unsupported data type: " + typeStr);
     }
@@ -71,13 +216,13 @@ void Database::executeCommand(const std::string& command) {
     std::string operation;                  // Declare a variable to store the extracted token
     ss >> operation;                        // Extract the first token from the stringstream
 
-    fmt::print("Executing command {}\n", operation);
+    // fmt::print("Executing command {}\n", operation);
 
     std::string restOfCommand;
     std::getline(ss, restOfCommand); // Extract everything after the first word
     restOfCommand = trim(restOfCommand);
 
-    fmt::print("Executing the rest of the command {}\n", restOfCommand);
+    // fmt::print("Executing the rest of the command {}\n", restOfCommand);
 
     std::string upperOperation = toUpperCase(operation);
 
@@ -105,6 +250,7 @@ void Database::createTable(const std::string& command) {
     ss >> keyword;
 
     if (toUpperCase(keyword) != "TABLE") {
+        std::cout << keyword;
         throw std::runtime_error("Syntax error in CREATE TABLE command.");
     }
 
@@ -118,7 +264,7 @@ void Database::createTable(const std::string& command) {
 
     std::string columnsDef;
     std::getline(ss, columnsDef);
-    columnsDef = trim(columnsDef);
+    columnsDef = removeTrailingSemicolon(trim(columnsDef));
 
     if (columnsDef.front() != '(' || columnsDef.back() != ')') {
         throw std::runtime_error("Syntax error in CREATE TABLE command.");
@@ -165,9 +311,10 @@ void Database::createTable(const std::string& command) {
 }
 
 
+
 void Database::dropTable(const std::string& command) {
     // Expected format: "TABLE table_name;"
-    std::stringstream ss(command);
+    std::stringstream ss(removeTrailingSemicolon(trim(command)));
     std::string keyword;
     ss >> keyword;
 
@@ -212,7 +359,7 @@ void Database::insertInto(const std::string& command) {
 
     std::string valuesDef;
     std::getline(ss, valuesDef);
-    valuesDef = trim(valuesDef);
+    valuesDef = removeTrailingSemicolon(trim(valuesDef));
 
     if (valuesDef.front() != '(' || valuesDef.back() != ')') {
         throw std::runtime_error("Syntax error in INSERT INTO command.");
@@ -249,24 +396,44 @@ void Database::insertInto(const std::string& command) {
         throw std::runtime_error("Column count doesn't match value count.");
     }
 
-    // Perform type checking to ensure each value matches the expected column type
     for (size_t i = 0; i < row.values.size(); ++i) {
-        DataType colType = it->second.columns[i].type; // Get the expected type for the current column
-        const std::string& valStr = row.values[i];     // Get the current value
+        DataType colType = it->second.columns[i].type;  // Get the expected type
+        std::string& valStr = std::get<std::string>(row.values[i]);  // Extract the string
 
-        // Check if the value matches the column's data type
-        if (colType == DataType::INTEGER) {
-            try {
-                // Attempt to convert the value to an integer
-                std::stoi(valStr); // . Parses str interpreting its content as an integral number of the specified base, which is returned as an int value.
-            } catch (...) {
-                // If conversion fails, throw an error indicating a type mismatch
-                throw std::runtime_error("Type mismatch: Expected INTEGER at column " + it->second.columns[i].name);
+        try {
+            if (colType == DataType::INTEGER) {
+                // Convert string to int and store it back in the variant
+                row.values[i] = std::stoi(valStr);
+            } else if (colType == DataType::FLOAT) {
+                // Convert string to float and store it back in the variant
+                row.values[i] = std::stof(valStr);
+            } else if (colType == DataType::CHAR) {
+                // Ensure the string is a single character
+                if (valStr.length() != 1) {
+                    throw std::runtime_error("Type mismatch: Expected single CHAR at column " + it->second.columns[i].name);
+                }
+                // Store the character in the variant
+                row.values[i] = valStr[0];
+            } else if (colType == DataType::DATE) {
+                // Validate DATE format (YYYY-MM-DD)
+                if (valStr.size() != 10 || valStr[4] != '-' || valStr[7] != '-' ||
+                    !std::isdigit(valStr[0]) || !std::isdigit(valStr[1]) ||
+                    !std::isdigit(valStr[2]) || !std::isdigit(valStr[3]) ||
+                    !std::isdigit(valStr[5]) || !std::isdigit(valStr[6]) ||
+                    !std::isdigit(valStr[8]) || !std::isdigit(valStr[9])) {
+                    throw std::runtime_error("Type mismatch: Expected DATE in 'YYYY-MM-DD' format at column " + it->second.columns[i].name);
+                    }
+                // Store the date string (unchanged) in the variant
+                row.values[i] = valStr;
+            } else if (colType == DataType::VARCHAR) {
+                // VARCHAR remains as a string
+                row.values[i] = valStr;
             }
+        } catch (const std::exception& e) {
+            // Handle conversion errors
+            throw std::runtime_error("Type mismatch: " + std::string(e.what()) + " at column " + it->second.columns[i].name);
         }
-        // No need to check for STRING type explicitly, as all values are stored as strings
     }
-
     // Add the validated row to the table's list of rows
     it->second.rows.push_back(row);
 
@@ -277,43 +444,55 @@ void Database::insertInto(const std::string& command) {
 // ------------------------------------------------------------------------------------------------------------------
 
 void Database::selectFrom(const std::string& command) {
-    // Expected formats:
-    // "* FROM table_name;"
-    // "column1, column2 FROM table_name;"
+    // Remove trailing semicolon and trim the command
+    std::string cleanedCommand = removeTrailingSemicolon(trim(command));
 
-    std::stringstream ss(command);
-    std::string columnsPart;
-    ss >> columnsPart;
+    // Find the positions of "FROM" and "WHERE" in the query
+    std::size_t wherePos = cleanedCommand.find(" WHERE ");
+    std::size_t fromPos = cleanedCommand.find(" FROM ");
 
-    std::string keyword;
-    ss >> keyword;
-
-    if (toUpperCase(keyword) != "FROM") {
+    // Check if "FROM" is present; it is required
+    if (fromPos == std::string::npos) {
         throw std::runtime_error("Syntax error in SELECT command.");
     }
 
-    std::string tableName;
-    ss >> tableName;
+    // Extract the part before "FROM" as column specifications
+    std::string columnsPart = trim(cleanedCommand.substr(0, fromPos));
 
-    auto it = tables.find(tableName);
+    // Extract the table name from the part after "FROM" but before "WHERE" (if present)
+    std::string tablePart = trim(
+        cleanedCommand.substr(fromPos + 6,
+                              (wherePos == std::string::npos ? std::string::npos : wherePos - (fromPos + 6)))
+    );
+
+    // Extract the WHERE clause (if present)
+    std::string wherePart = (wherePos != std::string::npos) ? trim(cleanedCommand.substr(wherePos + 7)) : "";
+
+    // Check if the specified table exists
+    auto it = tables.find(tablePart);
     if (it == tables.end()) {
-        throw std::runtime_error("Table '" + tableName + "' does not exist.");
+        throw std::runtime_error("Table '" + tablePart + "' does not exist.");
     }
 
+    // Reference to the target table
     Table& table = it->second;
 
-    // Determine column indices
+    // Determine which columns to select
     std::vector<int> colIndices;
-    bool selectAll = (columnsPart == "*");
+    bool selectAll = (columnsPart == "*"); // Check for wildcard
     if (selectAll) {
+        // Select all columns
         for (size_t i = 0; i < table.columns.size(); ++i) {
             colIndices.push_back(i);
         }
     } else {
+        // Parse the list of specified columns
         std::vector<std::string> selectedColumns = split(columnsPart, ',');
         for (auto& colName : selectedColumns) {
             colName = trim(colName);
             bool found = false;
+
+            // Find the index of the specified column
             for (size_t i = 0; i < table.columns.size(); ++i) {
                 if (table.columns[i].name == colName) {
                     colIndices.push_back(i);
@@ -322,29 +501,95 @@ void Database::selectFrom(const std::string& command) {
                 }
             }
             if (!found) {
-                throw std::runtime_error("Column '" + colName + "' does not exist in table '" + tableName + "'.");
+                throw std::runtime_error("Column '" + colName + "' does not exist in table '" + tablePart + "'.");
             }
         }
     }
 
+    // Filter rows based on the WHERE clause (if provided)
+    std::vector<Row> filteredRows = table.rows;
+    if (!wherePart.empty()) {
+        auto conditions = parseWhereClause(wherePart); // Parse the WHERE clause
+        filteredRows = filterRows(table, conditions);  // Apply the conditions
+    }
+
+    // Handle case where no rows match the conditions
+    if (filteredRows.empty()) {
+        fmt::print("| No matching rows |\n");
+        return;
+    }
+
+    // Prepare for column alignment by calculating maximum column widths
+    std::vector<size_t> colWidths(colIndices.size(), 0);
+
+    // Calculate column widths
+    for (size_t i = 0; i < colIndices.size(); ++i) {
+        // Start with the column header's length
+        colWidths[i] = table.columns[colIndices[i]].name.length();
+
+        // Update width based on row data
+        for (const auto& row : filteredRows) {
+            const auto& value = row.values[colIndices[i]];
+            size_t valueLength = 0;
+
+            if (std::holds_alternative<int>(value)) {
+                valueLength = std::to_string(std::get<int>(value)).length();
+            } else if (std::holds_alternative<float>(value)) {
+                // Add extra space for `.00` in float formatting
+                valueLength = fmt::format("{:.2f}", std::get<float>(value)).length();
+            } else if (std::holds_alternative<std::string>(value)) {
+                valueLength = std::get<std::string>(value).length();
+            }
+
+            // Update the maximum width for the column
+            colWidths[i] = std::max(colWidths[i], valueLength);
+        }
+    }
+
+    // Adjust column header spacing for floats
+    for (size_t i = 0; i < colIndices.size(); ++i) {
+        if (table.columns[colIndices[i]].type == DataType::FLOAT) {
+            // Add extra width for floating-point precision formatting
+            colWidths[i] = std::max(colWidths[i], colWidths[i] + 3); // Adjust width for ".xx"
+        }
+    }
     // Print column headers
-    for (size_t idx : colIndices) {
-        fmt::print("{}\t", table.columns[idx].name);
+    fmt::print("|");
+    for (size_t i = 0; i < colIndices.size(); ++i) {
+        fmt::print(" {:<{}} |", table.columns[colIndices[i]].name, colWidths[i]);
+    }
+    fmt::print("\n");
+
+    // Print separator line
+    fmt::print("|");
+    for (size_t i = 0; i < colIndices.size(); ++i) {
+        fmt::print(" {:-<{}} |", "", colWidths[i]);
     }
     fmt::print("\n");
 
     // Print rows
-    for (const auto& row : table.rows) {
-        for (size_t idx : colIndices) {
-            fmt::print("{}\t", row.values[idx]);
+    for (const auto& row : filteredRows) {
+        fmt::print("|");
+        for (size_t i = 0; i < colIndices.size(); ++i) {
+            const auto& value = row.values[colIndices[i]];
+
+            if (std::holds_alternative<int>(value)) {
+                // Integer value
+                fmt::print(" {:<{}} |", std::get<int>(value), colWidths[i]);
+            } else if (std::holds_alternative<float>(value)) {
+                // Floating-point value (formatted to 2 decimal places)
+                fmt::print(" {:<{}} |", fmt::format("{:.2f}", std::get<float>(value)), colWidths[i]);
+            } else if (std::holds_alternative<std::string>(value)) {
+                // String value
+                fmt::print(" {:<{}} |", std::get<std::string>(value), colWidths[i]);
+            }
         }
         fmt::print("\n");
     }
 }
 
 void Database::saveToFile(const std::string& command) {
-    // Expected format: "filename;"
-    std::string filename = trim(command);
+    std::string filename = removeTrailingSemicolon(trim(command));
     if (filename.empty()) {
         throw std::runtime_error("Syntax error in SAVE command.");
     }
@@ -354,18 +599,16 @@ void Database::saveToFile(const std::string& command) {
         throw std::runtime_error("Failed to open file for saving.");
     }
 
-    // Iterate over all tables in the database
     for (const auto& pair : tables) {
         const Table& table = pair.second;
 
-        // Save table name as a comment (optional)
         ofs << "# Table: " << table.name << "\n";
 
         // Save column headers
         for (size_t i = 0; i < table.columns.size(); ++i) {
             ofs << table.columns[i].name;
             if (i < table.columns.size() - 1) {
-                ofs << ","; // Add a comma except for the last column
+                ofs << ",";
             }
         }
         ofs << "\n";
@@ -373,15 +616,23 @@ void Database::saveToFile(const std::string& command) {
         // Save rows
         for (const auto& row : table.rows) {
             for (size_t i = 0; i < row.values.size(); ++i) {
-                ofs << row.values[i];
+                if (std::holds_alternative<int>(row.values[i])) {
+                    ofs << std::get<int>(row.values[i]);
+                } else if (std::holds_alternative<float>(row.values[i])) {
+                    ofs << std::get<float>(row.values[i]);
+                } else if (std::holds_alternative<char>(row.values[i])) {
+                    ofs << std::get<char>(row.values[i]);
+                } else if (std::holds_alternative<std::string>(row.values[i])) {
+                    ofs << std::get<std::string>(row.values[i]); // No quotes
+                }
+
                 if (i < row.values.size() - 1) {
-                    ofs << ","; // Add a comma except for the last value
+                    ofs << ",";
                 }
             }
             ofs << "\n";
         }
 
-        // Add an empty line between tables for clarity
         ofs << "\n";
     }
 
@@ -391,7 +642,7 @@ void Database::saveToFile(const std::string& command) {
 
 void Database::loadFromFile(const std::string& command) {
     // Expected format: "filename;"
-    std::string filename = trim(command);
+    std::string filename = removeTrailingSemicolon(trim(command));
     if (filename.empty()) {
         throw std::runtime_error("Syntax error in LOAD command.");
     }
