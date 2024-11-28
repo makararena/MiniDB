@@ -1,8 +1,10 @@
-#include "database.h"
 #include <iostream>
 #include <string>
 #include <vector>
 #include <fmt/format.h>
+
+#include "database.h"
+#include "utils.h"
 
 // Function to run automated tests
 void runTests() {

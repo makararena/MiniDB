@@ -2,6 +2,6 @@
 2. SELECT right now cant have 2 fields (+)
 3. i will need to add relations between tables somehow (the possibility to connect two tables)
 4. i will need to enable adding some columns to the database
-5. where should work anytime we want so we need to add (and, or, not operands)
+5. where should work anytime we want so we need to add (and, or, not operands) (+)
 6. we need to be able to load the data from different files with different paths
 7. tylko czasami (np. na żądanie lub przy zamykaniu aplikacji) zapisywać ich stan do pliku. (stan bazy danych)
