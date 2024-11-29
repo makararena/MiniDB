@@ -14,6 +14,7 @@ auto trim(const std::string& str) -> std::string{
     return str.substr(start, end - start + 1); // return the trimmed string
 }
 
+// сonvert the string to the upper case
 std::string toUpperCase(const std::string& str) {
     std::string upperStr = str;
     std::transform(
@@ -24,6 +25,18 @@ std::string toUpperCase(const std::string& str) {
     return upperStr;
 }
 
+// сonvert the string to the lower case
+std::string toLowerCase(const std::string& str) {
+    std::string upperStr = str;
+    std::transform(
+        upperStr.begin(),
+        upperStr.end(),
+        upperStr.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+    return upperStr;
+}
+
+// split the string by the dilimeter
 std::vector<std::string> split(const std::string& s, char delimiter) {
     std::vector<std::string> tokens; //  A vector to store the resulting substrings
     std::string token; // A temporary string used to hold each substring as it is extracted
@@ -43,3 +56,35 @@ std::string removeTrailingSemicolon(const std::string& str) {
     }
     return str; // Return the original string if no semicolon is found
 }
+
+std::string normalizeKeywords(const std::string& input, const std::vector<std::string>& keywords) {
+    // Split the input string into words
+    std::vector<std::string> words;
+    std::stringstream ss(input);
+    std::string word;
+    while (ss >> word) {
+        words.push_back(word);
+    }
+
+    // Process each word
+    for (auto& w : words) {
+        for (const auto& keyword : keywords) {
+            if (toUpperCase(w) == toUpperCase(keyword)) {
+                w = toUpperCase(keyword); // Normalize the keyword
+                break;
+            }
+        }
+    }
+
+    // Reconstruct the string from the vector of words
+    std::ostringstream normalized;
+    for (size_t i = 0; i < words.size(); ++i) {
+        normalized << words[i];
+        if (i < words.size() - 1) {
+            normalized << " ";
+        }
+    }
+
+    return normalized.str();
+}
+

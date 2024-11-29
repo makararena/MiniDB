@@ -1,126 +1,150 @@
 #include <fstream>
-#include <fmt/format.h>
+#include <iostream> // For error messages
+#include <cstdlib>  // For std::rand()
+
+#include <filesystem>
 
 #include "database.h"
 #include "utils.h"
 
-
 void Database::saveToFile(const std::string& command) {
-    std::string filename = removeTrailingSemicolon(trim(command));
-    if (filename.empty()) {
-        throw std::runtime_error("Syntax error in SAVE command.");
+    // Split the command on " AS " (case-sensitive match)
+    std::string command_pr = removeTrailingSemicolon(trim(command));
+    size_t asPos = command_pr.find(" AS ");
+    std::string tableName, csvFileName;
+
+    if (asPos != std::string::npos) {
+        // "AS" is present: Extract table name and CSV file name
+        tableName = trim(command_pr.substr(0, asPos));
+        csvFileName = trim(command_pr.substr(asPos + 4)); // Skip " AS "
+    } else {
+        // "AS" not present: Treat the table name as the CSV file name
+        tableName = trim(command_pr);
+        csvFileName = tableName + ".csv";
     }
 
-    std::ofstream ofs(filename);
+    if (tableName.empty() || csvFileName.empty()) {
+        throw std::runtime_error("Syntax error in SAVE command. Table name or CSV file name is missing.");
+    }
+
+    // Check if the table exists in memory
+    auto it = tables.find(tableName);
+    if (it == tables.end()) {
+        throw std::runtime_error("Table '" + tableName + "' does not exist in memory.");
+    }
+
+    // Construct the file path: Go up one directory from "cmake-build-debug" and into "data"
+    const std::string filepath = "../data/" + csvFileName;
+
+    // Open the file for writing
+    std::ofstream ofs(filepath);
     if (!ofs) {
-        throw std::runtime_error("Failed to open file for saving.");
+        throw std::runtime_error("Failed to open file for saving: " + filepath);
     }
 
-    for (const auto& pair : tables) {
-        const Table& table = pair.second;
+    const Table& table = it->second;
 
-        ofs << "# Table: " << table.name << "\n";
+    // Save column headers
+    for (size_t i = 0; i < table.columns.size(); ++i) {
+        ofs << table.columns[i].name;
+        if (i < table.columns.size() - 1) {
+            ofs << ",";
+        }
+    }
+    ofs << "\n";
 
-        // Save column headers
-        for (size_t i = 0; i < table.columns.size(); ++i) {
-            ofs << table.columns[i].name;
-            if (i < table.columns.size() - 1) {
+    // Save rows
+    for (const auto& row : table.rows) {
+        for (size_t i = 0; i < row.values.size(); ++i) {
+            if (std::holds_alternative<int>(row.values[i])) {
+                ofs << std::get<int>(row.values[i]);
+            } else if (std::holds_alternative<float>(row.values[i])) {
+                ofs << std::get<float>(row.values[i]);
+            } else if (std::holds_alternative<char>(row.values[i])) {
+                ofs << std::get<char>(row.values[i]);
+            } else if (std::holds_alternative<std::string>(row.values[i])) {
+                ofs << std::get<std::string>(row.values[i]); // No quotes
+            }
+
+            if (i < row.values.size() - 1) {
                 ofs << ",";
             }
         }
         ofs << "\n";
-
-        // Save rows
-        for (const auto& row : table.rows) {
-            for (size_t i = 0; i < row.values.size(); ++i) {
-                if (std::holds_alternative<int>(row.values[i])) {
-                    ofs << std::get<int>(row.values[i]);
-                } else if (std::holds_alternative<float>(row.values[i])) {
-                    ofs << std::get<float>(row.values[i]);
-                } else if (std::holds_alternative<char>(row.values[i])) {
-                    ofs << std::get<char>(row.values[i]);
-                } else if (std::holds_alternative<std::string>(row.values[i])) {
-                    ofs << std::get<std::string>(row.values[i]); // No quotes
-                }
-
-                if (i < row.values.size() - 1) {
-                    ofs << ",";
-                }
-            }
-            ofs << "\n";
-        }
-
-        ofs << "\n";
     }
 
     ofs.close();
-    fmt::print("Database saved to '{}' in CSV format successfully.\n", filename);
+    std::cout << "Table '" << tableName << "' saved to '" << filepath << "' successfully." << std::endl;
 }
 
 
 void Database::loadFromFile(const std::string& command) {
-    // Expected format: "filename;"
-    std::string filename = removeTrailingSemicolon(trim(command));
-    if (filename.empty()) {
-        throw std::runtime_error("Syntax error in LOAD command.");
+    // Split the command on " AS " (case-sensitive match)
+    std::string command_pr = removeTrailingSemicolon(trim(command));
+    size_t asPos = command_pr.find(" AS ");
+    std::string csvFileName, tableName;
+
+    if (asPos != std::string::npos) {
+        // "AS" is present: Extract CSV file name and table name
+        csvFileName = trim(command_pr.substr(0, asPos));
+        tableName = trim(command_pr.substr(asPos + 4)); // Skip " AS "
+    } else {
+        // "AS" not present: Treat the CSV file name as the table name
+        csvFileName = trim(command_pr);
+        tableName = csvFileName.substr(0, csvFileName.find_last_of('.')); // Remove ".csv"
     }
 
-    std::ifstream ifs(filename);
+    if (csvFileName.empty() || tableName.empty()) {
+        throw std::runtime_error("Syntax error in LOAD command. Table name or CSV file name is missing.");
+    }
+
+    fmt::print("Filename is {}", csvFileName);
+
+    // Construct the file path with .csv extension
+    const std::string filepath = "../data/" + csvFileName;
+
+    // Open the file for reading
+    std::ifstream ifs(filepath);
     if (!ifs) {
-        throw std::runtime_error("Failed to open file for loading.");
+        throw std::runtime_error("Failed to open file: " + filepath);
     }
 
-    tables.clear(); // Clear current database
+    // Check if the table already exists in memory
+    if (tables.find(tableName) != tables.end()) {
+        throw std::runtime_error("Table '" + tableName + "' already exists in memory. Drop it first before loading.");
+    }
+
+    Table table;
+    table.name = tableName;
 
     std::string line;
-    Table* currentTable = nullptr;
 
+    // Read column headers
+    if (std::getline(ifs, line)) {
+        std::vector<std::string> columnHeaders = split(line, ',');
+        for (const auto& header : columnHeaders) {
+            Column column = {trim(header), DataType::VARCHAR}; // Default type: VARCHAR
+            table.columns.push_back(column);
+        }
+    }
+
+    // Read rows
     while (std::getline(ifs, line)) {
-        line = trim(line);
-
-        // Skip empty lines
-        if (line.empty()) {
-            continue;
-        }
-
-        // Check for table name (comment line)
-        if (line.starts_with("# Table:")) {
-            std::string tableName = trim(line.substr(8)); // Extract table name
-            Table table;
-            table.name = tableName;
-            tables[tableName] = table;
-            currentTable = &tables[tableName];
-            continue;
-        }
-
-        // If currentTable is null, we are missing a table declaration
-        if (currentTable == nullptr) {
-            throw std::runtime_error("Unexpected data format: No table declared.");
-        }
-
-        // Parse the first non-comment line as column headers
-        if (currentTable->columns.empty()) {
-            std::vector<std::string> columnHeaders = split(line, ',');
-            for (const auto& header : columnHeaders) {
-                Column column = {trim(header), DataType::VARCHAR}; // Default to VARCHAR
-                currentTable->columns.push_back(column);
-            }
-            continue;
-        }
-
-        // Parse rows of data
         std::vector<std::string> rowValues = split(line, ',');
-        if (rowValues.size() != currentTable->columns.size()) {
-            throw std::runtime_error("Row data does not match column count in table '" + currentTable->name + "'.");
+        if (rowValues.size() != table.columns.size()) {
+            throw std::runtime_error("Row data does not match column count in table '" + tableName + "'.");
         }
 
         Row row;
         for (const auto& value : rowValues) {
-            row.values.push_back(trim(value));
+            row.values.push_back(trim(value)); // Add trimmed values to the row
         }
-        currentTable->rows.push_back(row);
+        table.rows.push_back(row);
     }
 
+    // Add the table to the database
+    tables[tableName] = table;
+
     ifs.close();
-    fmt::print("Database loaded from '{}' in CSV format successfully.\n", filename);
+    std::cout << "Table '" << tableName << "' loaded successfully from '" << filepath << "'." << std::endl;
 }

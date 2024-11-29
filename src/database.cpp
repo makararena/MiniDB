@@ -25,37 +25,45 @@ DataType Database::parseDataType(const std::string& typeStr) {
     throw std::runtime_error("Unsupported data type: " + typeStr);
 }
 
-// Interface for various command executions
 void Database::executeCommand(const std::string& command) {
     std::string trimmedCommand = trim(command);
-    std::stringstream ss(trimmedCommand);
-    std::string operation;
-    ss >> operation;
 
+    // Normalize only the operation (keyword)
+    std::string normalizedCommand = normalizeKeywords(
+        trimmedCommand, {"SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "LOAD", "INSERT", "CREATE", "DROP", "SAVE", "LIST TABLES",
+                                                                                                                              "AS"}
+    );
+
+    std::stringstream ss(normalizedCommand);
+    std::string normalizedOperation;
+
+    ss >> normalizedOperation;
+
+    // Get the rest of the command (e.g., table name or file name)
     std::string restOfCommand;
     std::getline(ss, restOfCommand);
-    restOfCommand = trim(restOfCommand);
+    restOfCommand = trim(restOfCommand); // Preserve the original case
 
-    std::string upperOperation = toUpperCase(operation);
-    if (upperOperation == "CREATE") {
-        createTable(restOfCommand);
-    } else if (upperOperation == "DROP") {
-        dropTable(restOfCommand);
-    } else if (upperOperation == "INSERT") {
-        insertInto(restOfCommand);
-    } else if (upperOperation == "SELECT") {
+    // Route the command based on the normalized operation
+    if (normalizedOperation == "SELECT") {
         selectFrom(restOfCommand);
-    } else if (upperOperation == "SAVE") {
-        saveToFile(restOfCommand);
-    }
-    else if (upperOperation == "LOAD") {
-        loadFromFile(restOfCommand);
-    }
-
-    else {
-        throw std::runtime_error("Unknown command.");
+    } else if (normalizedOperation == "CREATE") {
+        createTable(restOfCommand);
+    } else if (normalizedOperation == "DROP") {
+        dropTable(restOfCommand);
+    } else if (normalizedOperation == "INSERT") {
+        insertInto(restOfCommand);
+    } else if (normalizedOperation == "SAVE") {
+        saveToFile(restOfCommand); // Use file/table name as is
+    } else if (normalizedOperation == "LOAD") {
+        loadFromFile(restOfCommand); // Use file/table name as is
+    } else if (normalizedOperation == "LIST" && restOfCommand == "TABLES") {
+        listTables();
+    } else {
+        throw std::runtime_error("Unknown command: " + normalizedOperation);
     }
 }
+
 
 void Database::createTable(const std::string& command) {
     std::stringstream ss(command);
@@ -225,24 +233,28 @@ void Database::selectFrom(const std::string& command) {
     // Remove trailing semicolon and trim the command
     std::string cleanedCommand = removeTrailingSemicolon(trim(command));
 
-    // Find the positions of "FROM" and "WHERE" in the query
-    std::size_t wherePos = cleanedCommand.find(" WHERE ");
-    std::size_t fromPos = cleanedCommand.find(" FROM ");
+    // Convert specific SQL keywords to uppercase for normalization
+    std::string normalizedCommand = cleanedCommand;
+    normalizedCommand = normalizeKeywords(normalizedCommand, {"FROM", "WHERE", "AND", "OR", "NOT"});
+
+    // Find positions of normalized "FROM" and "WHERE"
+    std::size_t wherePos = normalizedCommand.find(" WHERE ");
+    std::size_t fromPos = normalizedCommand.find(" FROM ");
 
     // Ensure "FROM" is present; it's mandatory
     if (fromPos == std::string::npos) {
         throw std::runtime_error("Syntax error in SELECT command. Missing 'FROM'.");
     }
 
-    // Extract the columns part (before "FROM") and table name (after "FROM")
-    std::string columnsPart = trim(cleanedCommand.substr(0, fromPos));
+    // Extract columns and table name
+    std::string columnsPart = trim(normalizedCommand.substr(0, fromPos));
     std::string tablePart = trim(
-        cleanedCommand.substr(fromPos + 6,
-                              (wherePos == std::string::npos ? std::string::npos : wherePos - (fromPos + 6)))
+        normalizedCommand.substr(fromPos + 6,
+                                 (wherePos == std::string::npos ? std::string::npos : wherePos - (fromPos + 6)))
     );
 
-    // Extract the WHERE clause (if present)
-    std::string wherePart = (wherePos != std::string::npos) ? trim(cleanedCommand.substr(wherePos + 7)) : "";
+    // Extract WHERE clause if present
+    std::string wherePart = (wherePos != std::string::npos) ? trim(normalizedCommand.substr(wherePos + 7)) : "";
 
     // Check if the specified table exists
     auto it = tables.find(tablePart);
@@ -352,6 +364,7 @@ void Database::selectFrom(const std::string& command) {
         fmt::print("\n");
     }
 }
+
 
 
 // Helper to handle JOIN queries
@@ -487,5 +500,31 @@ void Database::enforceForeignKeys(const Table& table, const Row& row) {
         if (!found) {
             throw std::runtime_error("Foreign key constraint violated for column '" + fkColumn + "'.");
         }
+    }
+}
+
+
+void Database::listTables() {
+    if (tables.empty()) {
+        std::cout << "No tables currently loaded in memory." << std::endl;
+        return;
+    }
+
+    std::cout << "Tables currently in memory:" << std::endl;
+    for (const auto& pair : tables) {
+        const std::string& tableName = pair.first;
+        const Table& table = pair.second;
+
+        std::cout << "- Table Name: " << tableName << std::endl;
+        std::cout << "  Columns: ";
+        for (size_t i = 0; i < table.columns.size(); ++i) {
+            std::cout << table.columns[i].name;
+            if (i < table.columns.size() - 1) {
+                std::cout << ", ";
+            }
+        }
+        std::cout << std::endl;
+
+        std::cout << "  Number of Rows: " << table.rows.size() << std::endl;
     }
 }

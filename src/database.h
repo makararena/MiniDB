@@ -49,6 +49,7 @@ private:
     void selectWithJoin(const std::string& command);
     void saveToFile(const std::string& command);
     void loadFromFile(const std::string& command);
+    void listTables();
 
     // Helpers for primary and foreign keys
     void enforcePrimaryKey(const Table& table, const Row& row);
@@ -63,4 +64,5 @@ public:
     void executeCommand(const std::string& command);
     void addPrimaryKey(const std::string& table, const std::string& column);
     void addForeignKey(const std::string& table, const std::string& column, const std::string& refTable, const std::string& refColumn);
+
 };

@@ -6,7 +6,6 @@
 #include "database.h"
 #include "utils.h"
 
-// Function to run automated tests
 void runTests() {
     Database db;
 
@@ -71,29 +70,39 @@ void runTests() {
         db.executeCommand("SELECT name, hire_date FROM employees WHERE NOT grade = 'C';");
         fmt::print(" - Selected rows where grade is not 'C'.\n\n");
 
-        // Test: Save to File
-        fmt::print("[Test 11: Save to File]\n");
-        db.executeCommand("SAVE test_database.csv;");
-        fmt::print(" - Saved database to file 'test_database.csv'.\n\n");
+        // Test: Save to File (With AS)
+        fmt::print("[Test 11: Save to File (With AS)]\n");
+        db.executeCommand("SAVE employees AS employees_backup.csv;");
+        fmt::print(" - Saved table 'employees' as 'employees_backup.csv'.\n\n");
+
+        // Test: Save to File (Without AS)
+        fmt::print("[Test 12: Save to File (Without AS)]\n");
+        db.executeCommand("SAVE users;");
+        fmt::print(" - Saved table 'users' as 'users.csv'.\n\n");
 
         // Test: Drop Table
-        fmt::print("[Test 12: Drop Table]\n");
+        fmt::print("[Test 13: Drop Table]\n");
         db.executeCommand("DROP TABLE users;");
         db.executeCommand("DROP TABLE employees;");
         fmt::print(" - Dropped tables 'users' and 'employees'.\n\n");
 
-        // Test: Load from File
-        fmt::print("[Test 13: Load from File]\n");
-        db.executeCommand("LOAD test_database.csv;");
-        fmt::print(" - Loaded database from file 'test_database.csv'.\n\n");
+        // Test: Load from File (With AS)
+        fmt::print("[Test 14: Load from File (With AS)]\n");
+        db.executeCommand("LOAD employees_backup.csv AS employees;");
+        fmt::print(" - Loaded 'employees_backup.csv' into table 'employees'.\n\n");
+
+        // Test: Load from File (Without AS)
+        fmt::print("[Test 15: Load from File (Without AS)]\n");
+        db.executeCommand("LOAD users.csv;");
+        fmt::print(" - Loaded 'users.csv' into table 'users'.\n\n");
 
         // Test: Select After Loading
-        fmt::print("[Test 14: Select After Loading]\n");
+        fmt::print("[Test 16: Select After Loading]\n");
         db.executeCommand("SELECT * FROM employees;");
         fmt::print(" - Selected all rows from 'employees' after loading.\n\n");
 
         // Test: Edge Cases for WHERE Clause
-        fmt::print("[Test 15: Edge Cases for WHERE Clause]\n");
+        fmt::print("[Test 17: Edge Cases for WHERE Clause]\n");
         try {
             db.executeCommand("SELECT id, name FROM employees WHERE nonexistent_column > 1000;");
         } catch (const std::exception& e) {
@@ -115,24 +124,56 @@ void runTests() {
     }
 }
 
+
 int main() {
     Database db; // Create a new database instance
     std::string input;
 
-    fmt::print("Makararena's Database Application\n");
-    fmt::print("Enter 'TEST' to run automated tests, or type commands (type 'EXIT' to quit):\n");
+    fmt::print("=========================================\n");
+    fmt::print("      Makararena's Database Application\n");
+    fmt::print("=========================================\n");
+    fmt::print("Type 'HELP' to see the list of available commands.\n");
+    fmt::print("Type 'EXIT' to quit the application.\n");
+    fmt::print("Type 'TEST' to run automated tests.\n\n");
 
+    // Command loop
     while (true) {
         fmt::print("> ");
         std::getline(std::cin, input); // Get the input line
 
         // Exit condition
-        if (input == "EXIT") {
+        if (toUpperCase(input) == "EXIT") {
             break;
         }
 
+        // Display help if input is "HELP"
+        if (toUpperCase(input) == "HELP") {
+            fmt::print("\nAvailable Commands:\n");
+            fmt::print("- CREATE TABLE tableName (column1 TYPE, column2 TYPE, ...);\n");
+            fmt::print("  Example: CREATE TABLE users (id INTEGER, name VARCHAR);\n");
+            fmt::print("- INSERT INTO tableName VALUES (value1, value2, ...);\n");
+            fmt::print("  Example: INSERT INTO users VALUES (1, 'Alice');\n");
+            fmt::print("- SELECT * FROM tableName;\n");
+            fmt::print("  SELECT column1, column2 FROM tableName WHERE condition;\n");
+            fmt::print("  Example: SELECT name FROM users WHERE id > 1;\n");
+            fmt::print("- DROP TABLE tableName;\n");
+            fmt::print("  Example: DROP TABLE users;\n");
+            fmt::print("- SAVE tableName [AS csvFileName];\n");
+            fmt::print("  Example: SAVE users;\n");
+            fmt::print("  Example: SAVE users AS user_backup.csv;\n");
+            fmt::print("- LOAD csvFileName [AS tableName];\n");
+            fmt::print("  Example: LOAD users.csv;\n");
+            fmt::print("  Example: LOAD user_backup.csv AS users;\n");
+            fmt::print("- LIST TABLES;\n");
+            fmt::print("  Lists all tables currently in memory.\n");
+            fmt::print("- HELP: Display this list of commands.\n");
+            fmt::print("- EXIT: Exit the application.\n");
+            fmt::print("\n");
+            continue;
+        }
+
         // Run tests if input is "TEST"
-        if (input == "TEST") {
+        if (toUpperCase(input) == "TEST") {
             runTests();
             continue;
         }
@@ -157,5 +198,7 @@ int main() {
         }
     }
 
+    fmt::print("\nExiting Makararena's Database Application. Goodbye!\n");
     return 0;
 }
+
