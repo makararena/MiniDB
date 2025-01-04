@@ -29,11 +29,9 @@ struct Row {
 
 // Represents a table in the database
 struct Table {
-    std::string name;                             // Table name
-    std::vector<Column> columns;                 // Column definitions
-    std::vector<Row> rows;                       // Rows of data
-    std::vector<std::string> primaryKeys;        // Primary key columns
-    std::map<std::string, std::string> foreignKeys; // Foreign keys: column -> "referenced_table.referenced_column"
+    std::string name;              // Table name
+    std::vector<Column> columns;   // Column definitions
+    std::vector<Row> rows;         // Rows of data
 };
 
 // Main Database class
@@ -46,23 +44,14 @@ private:
     void dropTable(const std::string& command);
     void insertInto(const std::string& command);
     void selectFrom(const std::string& command);
-    void selectWithJoin(const std::string& command);
-    void saveToFile(const std::string& command);
-    void loadFromFile(const std::string& command);
+    void saveToFile(const std::string& command);  // (If needed)
+    void loadFromFile(const std::string& command); // (If needed)
     void listTables();
-
-    // Helpers for primary and foreign keys
-    void enforcePrimaryKey(const Table& table, const Row& row);
-    void enforceForeignKeys(const Table& table, const Row& row);
 
     DataType parseDataType(const std::string& typeStr);
 
 public:
     Database();
-
     // API for interacting with the database
     void executeCommand(const std::string& command);
-    void addPrimaryKey(const std::string& table, const std::string& column);
-    void addForeignKey(const std::string& table, const std::string& column, const std::string& refTable, const std::string& refColumn);
-
 };

@@ -1,8 +1,6 @@
 #include <fstream>
 #include <iostream> // For error messages
-#include <cstdlib>  // For std::rand()
-
-#include <filesystem>
+#include <fmt/format.h>
 
 #include "database.h"
 #include "utils.h"

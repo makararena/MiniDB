@@ -2,19 +2,24 @@
 #include <sstream>
 #include <vector>
 
-auto trim(const std::string& str) -> std::string{
-    // std::size_t is an unsigned integer type specifically designed for representing sizes and indexes in arrays, strings, and other containers.
-    // and also std::size_t can resperesnt much larger size than int
+// Just simple trim-helper function
+std::string trim(const std::string& str) {
+    int start = 0;
+    int end = str.length() - 1;
 
-    std::size_t start = str.find_first_not_of(" \t\n\r"); // find first non-whitespace character ( ' ' (space); '\t' (tab); '\n' (newline); '\r' (carriage return))
-    // If the string contains only whitespace, find_first_not_of will return std::string::npos.
-    if (start == std::string::npos) return ""; // https://www.naukri.com/code360/library/string-npos-in-cpp (link to the what is npos) (represents the maximum constant for the string in c++)
+    while (start <= end && (str[start] == ' ' || str[start] == '\t' || str[start] == '\n' || str[start] == '\r')) {
+        start++;
+    }
 
-    std::size_t end = str.find_last_not_of(" \t\n\r"); // scans the string from right to left looking for the last character than is not in the set of " \t\n\r"
-    return str.substr(start, end - start + 1); // return the trimmed string
+    while (end >= start && (str[end] == ' ' || str[end] == '\t' || str[end] == '\n' || str[end] == '\r')) {
+        end--;
+    }
+
+    return str.substr(start, end - start + 1);
 }
 
-// сonvert the string to the upper case
+
+// сonvert the string to the upper case (https://stackoverflow.com/questions/735204/convert-a-string-in-c-to-upper-case)
 std::string toUpperCase(const std::string& str) {
     std::string upperStr = str;
     std::transform(
@@ -22,18 +27,19 @@ std::string toUpperCase(const std::string& str) {
         upperStr.end(),
         upperStr.begin(),
         [](unsigned char c) { return std::toupper(c); });
+
     return upperStr;
 }
 
-// сonvert the string to the lower case
+// сonvert the string to the lower case (https://stackoverflow.com/questions/735204/convert-a-string-in-c-to-upper-case)
 std::string toLowerCase(const std::string& str) {
-    std::string upperStr = str;
+    std::string lowerStr = str;
     std::transform(
-        upperStr.begin(),
-        upperStr.end(),
-        upperStr.begin(),
+        lowerStr.begin(),
+        lowerStr.end(),
+        lowerStr.begin(),
         [](unsigned char c) { return std::tolower(c); });
-    return upperStr;
+    return lowerStr;
 }
 
 // split the string by the dilimeter
@@ -57,34 +63,123 @@ std::string removeTrailingSemicolon(const std::string& str) {
     return str; // Return the original string if no semicolon is found
 }
 
-std::string normalizeKeywords(const std::string& input, const std::vector<std::string>& keywords) {
-    // Split the input string into words
-    std::vector<std::string> words;
-    std::stringstream ss(input);
-    std::string word;
-    while (ss >> word) {
-        words.push_back(word);
+// A small helper to see if a string starts and ends with matching quotes
+bool isQuoted(const std::string& s) {
+    if (s.size() < 2) return false;
+    return ((s.front() == '\'' && s.back() == '\'') ||
+            (s.front() == '"'  && s.back() == '"'));
+}
+
+// A helper to remove surrounding quotes if present
+std::string stripQuotes(const std::string& s) {
+    if (isQuoted(s)) {
+        return s.substr(1, s.size() - 2);
+    }
+    return s;
+}
+
+// A helper to see if token is a known logical operator
+bool isLogical(const std::string& token) {
+    return (token == "AND" || token == "OR" || token == "NOT");
+}
+
+char toUpperManual(char c) {
+    // 'a'..'z' -> 'A'..'Z'
+    if (c >= 'a' && c <= 'z') {
+        c = static_cast<char>(c - 'a' + 'A');
+    }
+    return c;
+}
+
+// Case-insensitive equality check (same letters, ignoring case).
+bool caseInsensitiveEquals(const std::string& a, const std::string& b) {
+    if (a.size() != b.size()) return false;
+
+    for (size_t i = 0; i < a.size(); ++i) {
+        char ca = a[i];
+        char cb = b[i];
+        ca = toUpperManual(ca);
+        cb = toUpperManual(cb);
+        if (ca != cb) return false;
+    }
+    return true;
+}
+
+std::string normalizeKeywords(const std::string& input,
+                              const std::vector<std::string>& rawKeywords)
+{
+    // Separate single-word from multi-word keywords
+    std::vector<std::string> singleWordKws;
+    std::vector<std::string> multiWordKws;
+
+    for (size_t i = 0; i < rawKeywords.size(); ++i) {
+        // If a keyword has a space, we treat it as multi-word
+        if (rawKeywords[i].find(' ') != std::string::npos) {
+            multiWordKws.push_back(rawKeywords[i]);
+        } else {
+            singleWordKws.push_back(rawKeywords[i]);
+        }
     }
 
-    // Process each word
-    for (auto& w : words) {
-        for (const auto& keyword : keywords) {
-            if (toUpperCase(w) == toUpperCase(keyword)) {
-                w = toUpperCase(keyword); // Normalize the keyword
+    // Split the input into tokens (by spaces)
+    std::vector<std::string> tokens = split(input, ' ');
+
+    // We'll build a new list of tokens with the updated cases
+    std::vector<std::string> resultTokens;
+    resultTokens.reserve(tokens.size());
+
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        bool foundMulti = false;
+
+        // 1) Try matching each multi-word keyword at position i
+        for (size_t mk = 0; mk < multiWordKws.size(); ++mk) {
+            std::vector<std::string> parts = split(multiWordKws[mk], ' ');
+            // Check if we have enough tokens left for this multi-word
+            if (i + parts.size() <= tokens.size()) {
+                bool match = true;
+                for (size_t p = 0; p < parts.size(); ++p) {
+                    if (!caseInsensitiveEquals(tokens[i + p], parts[p])) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) {
+                    // We found a multi-word match. Add them in uppercase
+                    // or exactly as in rawKeywords, e.g. "ORDER BY"
+                    resultTokens.push_back(multiWordKws[mk]);
+                    // Skip ahead past these tokens
+                    i += (parts.size() - 1);
+                    foundMulti = true;
+                    break;
+                }
+            }
+        }
+        if (foundMulti) {
+            continue; // move to next token after multi-word match
+        }
+
+        // 2) If no multi-word match, check for single-word
+        bool foundSingle = false;
+        for (size_t sk = 0; sk < singleWordKws.size(); ++sk) {
+            if (caseInsensitiveEquals(tokens[i], singleWordKws[sk])) {
+                // Use the exact form from singleWordKws, which is uppercase
+                resultTokens.push_back(singleWordKws[sk]);
+                foundSingle = true;
                 break;
             }
         }
-    }
 
-    // Reconstruct the string from the vector of words
-    std::ostringstream normalized;
-    for (size_t i = 0; i < words.size(); ++i) {
-        normalized << words[i];
-        if (i < words.size() - 1) {
-            normalized << " ";
+        if (!foundSingle) {
+            // No match at all, push original token
+            resultTokens.push_back(tokens[i]);
         }
     }
 
-    return normalized.str();
+    // Rebuild the string with spaces
+    std::stringstream out;
+    for (size_t i = 0; i < resultTokens.size(); ++i) {
+        if (i > 0) out << " ";
+        out << resultTokens[i];
+    }
+    return out.str();
 }
-
