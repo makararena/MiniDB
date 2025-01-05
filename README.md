@@ -1,143 +1,187 @@
-# MiniDB
+# Database Application
 
-A simple database implementation written in **C++**, created for educational purposes. This project showcases how to build a basic file-based database with functionalities like CRUD operations (Create, Read, Update, Delete) and demonstrates modular programming with `database.cpp` and `database.h`.
-
----
-
-## Project Overview
-
-This project simulates a minimalistic database system. It supports basic operations you might find in small-scale database systems, such as:
-
-- Adding new entries to the database.
-- Retrieving data.
-- Updating specific records.
-- Deleting records.
-
-The code follows a clean structure to ensure maintainability and reusability, making it a perfect starting point for anyone learning how databases operate under the hood.
+This is a lightweight and versatile database application written in C++. It allows users to create, manage, and query in-memory relational database tables with SQL-like commands. The application also supports saving and loading tables to and from files for persistence.
 
 ---
 
-## Features
+## **Features**
 
-- **Command-Line Interface (CLI):** Interact with the database using commands.
-- **File-Based Storage:** Data persists across sessions by saving it to files.
-- **CRUD Functionality:** Core database operations are implemented.
-- **Easy Extensibility:** Modular structure with separate `.cpp` and `.h` files for the database logic.
+- **Table Management**: Create and drop tables with customizable column definitions.
+- **Data Manipulation**: Insert rows into tables with support for multiple data types:
+    - `INTEGER`
+    - `VARCHAR`
+    - `DATE`
+    - `CHAR`
+    - `FLOAT`
+- **Query Execution**:
+    - `SELECT` with column selection, filtering using `WHERE`, sorting using `ORDER BY`, and limiting rows using `LIMIT`.
+    - Logical operators like `AND`, `OR`, `NOT`, and `IN` are supported.
+- **Persistence**:
+    - Save tables to `.csv` files and load them back.
+    - Delete files directly from the application.
+- **Utility Commands**:
+    - List all active tables.
+    - Display helpful command instructions.
+    - Run built-in tests to verify functionality.
 
 ---
 
-## Project Structure
+## **Getting Started**
+
+### **Project Structure**
 
 ```
-Database-in-C/
-│
-├── .idea/                (IDE configuration - optional, can be gitignored)
-├── cmake-build-debug/    (Build output - optional, can be gitignored)
-├── src/
-│   ├── database.cpp      (Core database implementation)
-│   ├── database.h        (Header file for database.cpp)
-│   ├── main.cpp          (Entry point for the application)
-│
-├── CMakeLists.txt        (Build configuration for CMake)
-├── README.md             (This file)
-├── Project Rules.txt     (Development rules or additional notes)
-├── what_i_need_to_add.txt (A to-do list for future features)
+DatabaseProject
+├── CMakeLists.txt          # CMake build configuration
+├── README.md               # Project documentation
+├── data/                   # Sample data files
+│   ├── Titanic.csv
+│   ├── WorldPopulation.csv
+├── docs/                   # Documentation files
+├── src/                    # Source code files
+│   ├── condition.cpp
+│   ├── condition.h
+│   ├── database.cpp
+│   ├── database.h
+│   ├── file_io.cpp
+│   ├── file_io.h
+│   ├── main.cpp
+│   ├── utils.cpp
+│   ├── utils.h
+├── cmake-build-debug/      # Build artifacts
 ```
 
----
+### **Prerequisites**
 
-## Setup and Installation
+- A C++17 or higher compatible compiler (e.g., GCC, Clang, MSVC).
+- CMake for building the project.
+- [fmt library](https://github.com/fmtlib/fmt) installed on your system.
 
-### Prerequisites
-- **C++ Compiler:** Ensure you have a C++ compiler installed (e.g., `g++`, `clang`).
-- **CMake:** Required for building the project.
-- **Make:** Used to compile the project.
+### **Building the Project**
 
-### Building the Project
-1. Clone the repository:
+1. Clone the repository or download the source files.
+2. Navigate to the project root directory.
+3. Build the project using CMake:
    ```bash
-   git clone https://github.com/makararena/Database-in-C.git
-   cd Database-in-C
-   ```
-
-2. Create a `build/` directory and navigate to it:
-   ```bash
-   mkdir build && cd build
-   ```
-
-3. Generate build files using CMake:
-   ```bash
+   mkdir build
+   cd build
    cmake ..
-   ```
-
-4. Compile the project:
-   ```bash
    make
    ```
+4. The executable file will be generated in the `build` directory.
 
-5. Run the executable:
+### **Running the Application**
+
+1. Navigate to the `build` directory.
+2. Run the executable:
    ```bash
-   ./database
+   ./database_app
    ```
 
 ---
 
-## Usage
+## **Usage Instructions**
 
-### Command-Line Instructions
-1. Once the program is running, you'll be presented with a menu of options.
-2. Follow the prompts to perform the following operations:
-   - Add a record to the database.
-   - View all records.
-   - Search for specific entries.
-   - Update or delete existing entries.
+When you start the application, a prompt (`>`) will appear, allowing you to enter commands. Below are some of the supported commands:
 
-### Example
+### **Table Commands**
+
+- Create a table:
+
+  ```
+  CREATE TABLE tableName (column1 TYPE, column2 TYPE, ...);
+  Example: CREATE TABLE users (id INTEGER, name VARCHAR, age INTEGER);
+  ```
+
+- Drop a table:
+
+  ```
+  DROP TABLE tableName;
+  Example: DROP TABLE users;
+  ```
+
+### **Data Commands**
+
+- Insert data:
+
+  ```
+  INSERT INTO tableName VALUES (value1, value2, ...);
+  Example: INSERT INTO users VALUES (1, 'Alice', 25);
+  ```
+
+- Query data:
+
+  ```
+  SELECT column1, column2 FROM tableName [WHERE condition] [ORDER BY column1 [ASC|DESC], column2 [ASC|DESC]] [LIMIT n];
+  Examples:
+    SELECT * FROM users;
+    SELECT name, age FROM users WHERE age > 20;
+    SELECT * FROM users ORDER BY age DESC LIMIT 10;
+  ```
+
+### **Persistence Commands**
+
+- Save a table:
+
+  ```
+  SAVE tableName [AS fileName];
+  Examples:
+    SAVE users;
+    SAVE users AS users_backup.csv;
+  ```
+
+- Load a table:
+
+  ```
+  LOAD fileName [AS tableName];
+  Examples:
+    LOAD users.csv;
+    LOAD users_backup.csv AS users;
+  ```
+
+- Delete a file:
+
+  ```
+  DELETE FILE fileName;
+  Example: DELETE FILE users_backup.csv;
+  ```
+
+### **Utility Commands**
+
+- List tables:
+  ```
+  LIST TABLES;
+  ```
+- Display help:
+  ```
+  HELP;
+  ```
+- Exit the application:
+  ```
+  EXIT;
+  ```
+
+---
+
+## **Testing**
+
+You can run built-in tests by typing the following command at the prompt:
+
 ```bash
-Welcome to Database-in-C!
-1. Add Record
-2. View Records
-3. Search Records
-4. Update Record
-5. Delete Record
-6. Exit
-Enter your choice: 1
+TEST
 ```
 
----
-
-## Future Features (Planned)
-
-The project is designed to be extendable. Future updates may include:
-- **Indexing:** Implementing indexes for faster search operations.
-- **Transactions:** Adding support for simple database transactions.
-- **Multi-File Database:** Expanding the program to work with multiple database files.
-- **Tests:** Incorporating unit tests for database functionality.
+The tests will validate the core functionality of the application, such as creating tables, inserting data, querying with conditions, and saving/loading tables.
 
 ---
 
-## Contributions
+## **Contributing**
 
-If you'd like to contribute:
-1. Fork the repository.
-2. Create a feature branch.
-3. Submit a pull request with detailed explanations of your changes.
+Feel free to fork this repository and make contributions. Pull requests are welcome for enhancements and bug fixes.
 
 ---
 
-## Notes (Optional - Content Above `main()`)
+## **License**
 
-If your project contains introductory information in `main.cpp`, it's a great idea to move all that into this section or above, such as:
-- A program introduction.
-- Instructions to use the CLI.
-- An explanation of how the project functions at a high level.
+This project is licensed under the MIT License. See the LICENSE file for details.
 
----
-
-## License
-
-This project is distributed under the **MIT License**. Feel free to use it as you see fit, with attribution.
-
----
-
-This expanded README should provide a more comprehensive view of your project and its goals, making it easier for others to understand and contribute. Let me know if you'd like to refine any section further!
