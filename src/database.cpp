@@ -1,27 +1,18 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <fmt/format.h>
 
-// Include your helper headers as needed
 #include "database.h"
 #include "condition.h"
-#include "file_io.h"
 #include "utils.h"
-
-
-// std::npos - means not found
-
-// ---------------------------------------------------------------------------------------
-// Database class implementation
+#include "fmt/color.h"
 
 Database::Database() {
     // Constructor: no special initialization required
 }
 
-// ---------------------------------------------------------------------------------------
 DataType Database::parseDataType(const std::string& typeStr) {
-    std::string upperTypeStr = toUpperCase(typeStr);
+    std::string upperTypeStr = toCase(typeStr, CaseType::UPPER);
     if (upperTypeStr == "INTEGER") return DataType::INTEGER;
     if (upperTypeStr == "VARCHAR") return DataType::VARCHAR;
     if (upperTypeStr == "DATE")    return DataType::DATE;
@@ -30,18 +21,14 @@ DataType Database::parseDataType(const std::string& typeStr) {
     throw std::runtime_error("Unsupported data type: " + typeStr);
 }
 
-// ---------------------------------------------------------------------------------------
 void Database::executeCommand(const std::string& command) {
     std::string trimmedCommand = removeTrailingSemicolon(trim(command));
 
     // Normalize only the operation (keyword)
-    std::string normalizedCommand = normalizeKeywords(
-        trimmedCommand,
-        {"SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "IN", "ORDER BY",
-         "LOAD", "INSERT", "CREATE", "DROP", "SAVE", "LIST TABLES", "AS", "LIMIT"}
-    );
+    std::string normalizedCommand = normalizeKeywords(trimmedCommand);
 
-    std::stringstream ss(normalizedCommand);
+
+    std::stringstream ss(normalizedCommand); // What is stringstream https://stackoverflow.com/questions/20594520/what-exactly-does-stringstream-do
     std::string normalizedOperation;
     ss >> normalizedOperation; // The first keyword (SELECT, CREATE, etc.)
 
@@ -64,7 +51,11 @@ void Database::executeCommand(const std::string& command) {
         loadFromFile(restOfCommand);
     } else if (normalizedOperation == "LIST" && restOfCommand == "TABLES") {
         listTables();
-    } else {
+    }
+    else if (normalizedOperation == "DELETE" && restOfCommand.starts_with("FILE")) {
+        deleteFile(restOfCommand.substr(5)); // Pass the file name part
+    }
+    else {
         throw std::runtime_error("Unknown command: " + normalizedOperation);
     }
 }
@@ -76,7 +67,7 @@ void Database::createTable(const std::string& command) {
     std::string keyword;
     ss >> keyword;  // Should be "TABLE"
 
-    if (toUpperCase(keyword) != "TABLE") {
+    if (toCase(keyword, CaseType::UPPER)  != "TABLE") {
         throw std::runtime_error("Syntax error in CREATE TABLE command.");
     }
 
@@ -142,7 +133,7 @@ void Database::dropTable(const std::string& command) {
     std::string keyword;
     ss >> keyword;  // Should be "TABLE"
 
-    if (toUpperCase(keyword) != "TABLE") {
+    if (toCase(keyword, CaseType::UPPER) != "TABLE") {
         throw std::runtime_error("Syntax error in DROP TABLE command.");
     }
 
@@ -168,7 +159,7 @@ void Database::insertInto(const std::string& command) {
     std::string keyword;
     ss >> keyword; // Should be "INTO"
 
-    if (toUpperCase(keyword) != "INTO") {
+    if (toCase(keyword, CaseType::UPPER) != "INTO") {
         throw std::runtime_error("Syntax error in INSERT INTO command.");
     }
 
@@ -185,7 +176,7 @@ void Database::insertInto(const std::string& command) {
 
     // Read the next keyword, should be "VALUES"
     ss >> keyword;
-    if (toUpperCase(keyword) != "VALUES") {
+    if (toCase(keyword, CaseType::UPPER) != "VALUES") {
         throw std::runtime_error("Syntax error in INSERT INTO command. Missing 'VALUES'.");
     }
 
@@ -287,6 +278,7 @@ void Database::selectFrom(const std::string& command) {
 
     // if we found any markers, pick the smallest
     if (!markers.empty()) {
+        // so the std::min_element returns iterator and if we want to actually get the real values we can just use *
         tablePartEnd = *std::min_element(markers.begin(), markers.end());
     }
 
@@ -334,7 +326,7 @@ void Database::selectFrom(const std::string& command) {
 
                 // If second token exists, check if it's DESC
                 if (orderTokens.size() > 1) {
-                    std::string direction = toUpperCase(trim(orderTokens[1]));
+                    std::string direction = toCase(trim(orderTokens[1]), CaseType::UPPER);
                     if (direction == "DESC") {
                         isDesc = true;
                     }
@@ -364,7 +356,7 @@ void Database::selectFrom(const std::string& command) {
     if (it == tables.end()) {
         throw std::runtime_error("Table '" + tablePart + "' does not exist.");
     }
-    Table& table = it->second;
+    Table& table = it->second; // reference to the table
 
     // 7) Determine which columns to select
     std::vector<int> colIndices;
@@ -406,7 +398,7 @@ void Database::selectFrom(const std::string& command) {
             [&table, &orderByColumns](const Row& a, const Row& b) {
                 // Compare row A and row B column by column
                 for (const auto& [colName, isDesc] : orderByColumns) {
-                    // Find the column index in `table.columns`
+                    // Take the column iterator with the same name as in orderByColumns
                     auto colIt = std::find_if(
                         table.columns.begin(),
                         table.columns.end(),
@@ -417,26 +409,44 @@ void Database::selectFrom(const std::string& command) {
                         throw std::runtime_error("Column '" + colName + "' not found in table.");
                     }
 
+                    // Convert iterator to an index (colIndex).
                     size_t colIndex = std::distance(table.columns.begin(), colIt);
                     const Value& valA = a.values[colIndex];
                     const Value& valB = b.values[colIndex];
 
-                    // If valA != valB, decide ordering. If they are equal, go to the next column
+                    // If valA != valB, decide ordering. If they are equal, check next column.
                     if (valA != valB) {
+                        // int
                         if (std::holds_alternative<int>(valA)) {
-                            // cast them to int
                             int va = std::get<int>(valA);
                             int vb = std::get<int>(valB);
                             return isDesc ? (va > vb) : (va < vb);
-                        } else if (std::holds_alternative<std::string>(valA)) {
+                        }
+                        // std::string
+                        else if (std::holds_alternative<std::string>(valA)) {
                             const std::string& sa = std::get<std::string>(valA);
                             const std::string& sb = std::get<std::string>(valB);
                             return isDesc ? (sa > sb) : (sa < sb);
                         }
-                        // add logic for float/char/etc. as needed
+                        // float
+                        else if (std::holds_alternative<float>(valA)) {
+                            float fa = std::get<float>(valA);
+                            float fb = std::get<float>(valB);
+                            return isDesc ? (fa > fb) : (fa < fb);
+                        }
+                        // char
+                        else if (std::holds_alternative<char>(valA)) {
+                            char ca = std::get<char>(valA);
+                            char cb = std::get<char>(valB);
+                            return isDesc ? (ca > cb) : (ca < cb);
+                        }
+                        else {
+                            throw std::runtime_error("Unhandled data type in sorting logic.");
+                        }
                     }
                 }
-                // If all columns are equal, no swap needed
+
+                // If all compared columns are equal, retain original order (stable sort not guaranteed with std::sort).
                 return false;
             }
         );
@@ -444,16 +454,13 @@ void Database::selectFrom(const std::string& command) {
 
     // 10) Apply LIMIT if specified
     if (limitValue >= 0 && static_cast<size_t>(limitValue) < filteredRows.size()) {
-        filteredRows.resize(limitValue);
-    }
-
-    // 11) If no rows match, just report and exit
-    if (filteredRows.empty()) {
-        fmt::print("| No matching rows |\n");
-        return;
+        filteredRows.resize(limitValue); // https://www.geeksforgeeks.org/vector-resize-c-stl/
     }
 
     // 12) Format and print the results
+
+    // Create a vector of size of number of columns with 0 to save all
+    // max width for each column for the proper print
     std::vector<size_t> colWidths(colIndices.size(), 0);
 
     // Compute max width for each column
@@ -481,6 +488,7 @@ void Database::selectFrom(const std::string& command) {
     // Print header
     fmt::print("|");
     for (size_t i = 0; i < colIndices.size(); ++i) {
+        // OpenAI model code (haven't found this thing in documentation, but it works :) )
         fmt::print(" {:<{}} |", table.columns[colIndices[i]].name, colWidths[i]);
     }
     fmt::print("\n");

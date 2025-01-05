@@ -1,3 +1,0 @@
-> SELECT * FROM users ORDER BY age, name;
-Error: Column 'age,' not found in table.
-

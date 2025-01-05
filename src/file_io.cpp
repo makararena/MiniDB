@@ -8,7 +8,7 @@
 void Database::saveToFile(const std::string& command) {
     // Split the command on " AS " (case-sensitive match)
     std::string command_pr = removeTrailingSemicolon(trim(command));
-    size_t asPos = command_pr.find(" AS ");
+    int asPos = command_pr.find(" AS ");
     std::string tableName, csvFileName;
 
     if (asPos != std::string::npos) {
@@ -35,17 +35,18 @@ void Database::saveToFile(const std::string& command) {
     const std::string filepath = "../data/" + csvFileName;
 
     // Open the file for writing
-    std::ofstream ofs(filepath);
+    std::ofstream ofs(filepath); // https://cplusplus.com/reference/fstream/ofstream/ofstream/
     if (!ofs) {
         throw std::runtime_error("Failed to open file for saving: " + filepath);
     }
 
+    // reference to the Table not to the name
     const Table& table = it->second;
 
     // Save column headers
-    for (size_t i = 0; i < table.columns.size(); ++i) {
+    for (int i = 0; i < table.columns.size(); ++i) {
         ofs << table.columns[i].name;
-        if (i < table.columns.size() - 1) {
+        if (i < table.columns.size() - 1) { // because the last column shouldnt end by ","
             ofs << ",";
         }
     }
@@ -53,7 +54,7 @@ void Database::saveToFile(const std::string& command) {
 
     // Save rows
     for (const auto& row : table.rows) {
-        for (size_t i = 0; i < row.values.size(); ++i) {
+        for (int i = 0; i < row.values.size(); ++i) {
             if (std::holds_alternative<int>(row.values[i])) {
                 ofs << std::get<int>(row.values[i]);
             } else if (std::holds_alternative<float>(row.values[i])) {
@@ -78,17 +79,17 @@ void Database::saveToFile(const std::string& command) {
 
 void Database::loadFromFile(const std::string& command) {
     // Split the command on " AS " (case-sensitive match)
-    std::string command_pr = removeTrailingSemicolon(trim(command));
-    size_t asPos = command_pr.find(" AS ");
+    std::string cleanedCommand = removeTrailingSemicolon(trim(command));
+    int asPos = cleanedCommand.find(" AS ");
     std::string csvFileName, tableName;
 
     if (asPos != std::string::npos) {
         // "AS" is present: Extract CSV file name and table name
-        csvFileName = trim(command_pr.substr(0, asPos));
-        tableName = trim(command_pr.substr(asPos + 4)); // Skip " AS "
+        csvFileName = trim(cleanedCommand.substr(0, asPos));
+        tableName = trim(cleanedCommand.substr(asPos + 4)); // Skip " AS "
     } else {
         // "AS" not present: Treat the CSV file name as the table name
-        csvFileName = trim(command_pr);
+        csvFileName = trim(cleanedCommand);
         tableName = csvFileName.substr(0, csvFileName.find_last_of('.')); // Remove ".csv"
     }
 
@@ -102,7 +103,7 @@ void Database::loadFromFile(const std::string& command) {
     const std::string filepath = "../data/" + csvFileName;
 
     // Open the file for reading
-    std::ifstream ifs(filepath);
+    std::ifstream ifs(filepath); // https://cplusplus.com/reference/fstream/ifstream/
     if (!ifs) {
         throw std::runtime_error("Failed to open file: " + filepath);
     }
@@ -146,3 +147,24 @@ void Database::loadFromFile(const std::string& command) {
     ifs.close();
     std::cout << "Table '" << tableName << "' loaded successfully from '" << filepath << "'." << std::endl;
 }
+
+void Database::deleteFile(const std::string& rawFileName) {
+    // Preprocess the file name: trim spaces and remove trailing semicolon
+    std::string cleanedFileName = removeTrailingSemicolon(trim(rawFileName));
+
+    if (cleanedFileName.empty()) {
+        throw std::runtime_error("Syntax error in DELETE FILE command. File name is missing.");
+    }
+
+    // Construct the full file path
+    const std::string fullFilePath = "../data/" + cleanedFileName;
+
+    // Attempt to delete the file
+    if (std::remove(fullFilePath.c_str()) != 0) {
+        throw std::runtime_error("Failed to delete file: " + fullFilePath + ". File may not exist.");
+    }
+
+    std::cout << "File '" << fullFilePath << "' deleted successfully." << std::endl;
+}
+
+
