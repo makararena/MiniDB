@@ -1,4 +1,4 @@
-# Database Application
+# **Database Application**
 
 This is a lightweight and versatile database application written in C++. It allows users to create, manage, and query in-memory relational database tables with SQL-like commands. The application also supports saving and loading tables to and from files for persistence.
 
@@ -8,75 +8,41 @@ This is a lightweight and versatile database application written in C++. It allo
 
 - **Table Management**: Create and drop tables with customizable column definitions.
 - **Data Manipulation**: Insert rows into tables with support for multiple data types:
-    - `INTEGER`
-    - `VARCHAR`
-    - `DATE`
-    - `CHAR`
-    - `FLOAT`
+  - `INTEGER`
+  - `VARCHAR`
+  - `DATE`
+  - `CHAR`
+  - `FLOAT`
 - **Query Execution**:
-    - `SELECT` with column selection, filtering using `WHERE`, sorting using `ORDER BY`, and limiting rows using `LIMIT`.
-    - Logical operators like `AND`, `OR`, `NOT`, and `IN` are supported.
+  - `SELECT` with column selection, filtering using `WHERE`, sorting using `ORDER BY`, and limiting rows using `LIMIT`.
+  - Logical operators like `AND`, `OR`, `NOT`, and `IN` are supported.
 - **Persistence**:
-    - Save tables to `.csv` files and load them back.
-    - Delete files directly from the application.
+  - Save tables to `.csv` files and load them back.
+  - Delete files directly from the application.
 - **Utility Commands**:
-    - List all active tables.
-    - Display helpful command instructions.
-    - Run built-in tests to verify functionality.
+  - List all active tables.
+  - Display helpful command instructions.
+  - Run built-in tests to verify functionality.
 
 ---
 
 ## **Getting Started**
 
-### **Project Structure**
+### **Building and Running with Docker**
 
-```
-DatabaseProject
-├── CMakeLists.txt          # CMake build configuration
-├── README.md               # Project documentation
-├── data/                   # Sample data files
-│   ├── Titanic.csv
-│   ├── WorldPopulation.csv
-├── docs/                   # Documentation files
-├── src/                    # Source code files
-│   ├── condition.cpp
-│   ├── condition.h
-│   ├── database.cpp
-│   ├── database.h
-│   ├── file_io.cpp
-│   ├── file_io.h
-│   ├── main.cpp
-│   ├── utils.cpp
-│   ├── utils.h
-├── cmake-build-debug/      # Build artifacts
-```
+To simplify setup, you can use Docker to build and run the application.
 
-### **Prerequisites**
-
-- A C++17 or higher compatible compiler (e.g., GCC, Clang, MSVC).
-- CMake for building the project.
-- [fmt library](https://github.com/fmtlib/fmt) installed on your system.
-
-### **Building the Project**
-
-1. Clone the repository or download the source files.
-2. Navigate to the project root directory.
-3. Build the project using CMake:
+1. **Build the Docker Image**:
    ```bash
-   mkdir build
-   cd build
-   cmake ..
-   make
+   docker build -t database-app .
    ```
-4. The executable file will be generated in the `build` directory.
 
-### **Running the Application**
-
-1. Navigate to the `build` directory.
-2. Run the executable:
+2. **Run the Application**:
    ```bash
-   ./database_app
+   docker run -it database-app
    ```
+
+The application will start, and you can interact with it using the command-line interface.
 
 ---
 
@@ -87,14 +53,12 @@ When you start the application, a prompt (`>`) will appear, allowing you to ente
 ### **Table Commands**
 
 - Create a table:
-
   ```
   CREATE TABLE tableName (column1 TYPE, column2 TYPE, ...);
   Example: CREATE TABLE users (id INTEGER, name VARCHAR, age INTEGER);
   ```
 
 - Drop a table:
-
   ```
   DROP TABLE tableName;
   Example: DROP TABLE users;
@@ -103,14 +67,12 @@ When you start the application, a prompt (`>`) will appear, allowing you to ente
 ### **Data Commands**
 
 - Insert data:
-
   ```
   INSERT INTO tableName VALUES (value1, value2, ...);
   Example: INSERT INTO users VALUES (1, 'Alice', 25);
   ```
 
 - Query data:
-
   ```
   SELECT column1, column2 FROM tableName [WHERE condition] [ORDER BY column1 [ASC|DESC], column2 [ASC|DESC]] [LIMIT n];
   Examples:
@@ -122,7 +84,6 @@ When you start the application, a prompt (`>`) will appear, allowing you to ente
 ### **Persistence Commands**
 
 - Save a table:
-
   ```
   SAVE tableName [AS fileName];
   Examples:
@@ -131,7 +92,6 @@ When you start the application, a prompt (`>`) will appear, allowing you to ente
   ```
 
 - Load a table:
-
   ```
   LOAD fileName [AS tableName];
   Examples:
@@ -140,7 +100,6 @@ When you start the application, a prompt (`>`) will appear, allowing you to ente
   ```
 
 - Delete a file:
-
   ```
   DELETE FILE fileName;
   Example: DELETE FILE users_backup.csv;
@@ -184,4 +143,3 @@ Feel free to fork this repository and make contributions. Pull requests are welc
 ## **License**
 
 This project is licensed under the MIT License. See the LICENSE file for details.
-
