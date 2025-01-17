@@ -1,43 +1,86 @@
+#include <filesystem> // C++17 for filesystem
 #include <iostream>
 #include <string>
 #include <vector>
 #include <fmt/format.h>
 
 #include "database.h"
+#include "file_io.h"
 #include "utils.h"
 
+// Function to clear terminal and reprint header
+void clearScreenAndReset() {
+    std::system("clear"); // Clear the terminal screen
+    fmt::print("=========================================\n");
+    fmt::print(" Makar Charviakou's Database Application \n");
+    fmt::print("=========================================\n");
+    fmt::print("Type 'HELP' to see the list of available commands.\n");
+    fmt::print("Type 'EXIT' to quit the application.\n");
+    fmt::print("Type 'TEST' to run automated tests.\n");
+    fmt::print("Type 'CLEAR' to clear the screen and reset the view.\n");
+    fmt::print("Type 'DATASETS' to list available datasets.\n");
+}
+
+void listDatasets(const std::string& folderPath) {
+    fmt::print("\nLooking for datasets in folder '{}'\n", folderPath); // Debugging the folder path
+    fmt::print("Available datasets:\n\n");
+    try {
+        bool foundFile = false; // To handle the case where no files are found
+        for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+            if (entry.is_regular_file()) { // Ensure it's a file
+                fmt::print("- {}\n", entry.path().filename().string());
+                foundFile = true;
+            }
+        }
+        if (!foundFile) {
+            fmt::print("No datasets found in the folder '{}'.\n", folderPath);
+        }
+    } catch (const std::exception& e) {
+        fmt::print("Error accessing datasets: {}\n", e.what());
+    }
+    fmt::print("\n");
+}
+
+
 int main() {
-    Database db; // Create a new database instance
+    Database db;
     std::string input;
+    clearScreenAndReset();  // Initialize the header on startup
 
-    // Display the initial header and instructions
-    displayHeader();
-
-    // Command loop
     while (true) {
-        fmt::print("> ");
+        fmt::print("\n> "); // Always start the prompt on a new line
         std::getline(std::cin, input); // Get the input line
 
-        // Exit condition
         if (toCase(input, CaseType::UPPER) == "EXIT") {
             break;
         }
 
-        // Display help if input is "HELP"
         if (toCase(input, CaseType::UPPER) == "HELP") {
+            fmt::print("\n"); // Add space before response
+            fmt::print("Displaying help text...\n");
             displayHelp();
-            displayHeader();
+            fmt::print("\n"); // Add space after response
             continue;
         }
 
-        // Run tests if input is "TEST"
-        if (toCase(input, CaseType::UPPER)  == "TEST") {
+        if (toCase(input, CaseType::UPPER) == "TEST") {
+            fmt::print("\n"); // Add space before response
+            fmt::print("Running tests...\n");
             runTests();
-            displayHeader();
+            fmt::print("\n"); // Add space after response
             continue;
         }
 
-        // Split input by semicolons to handle multiple commands
+        if (toCase(input, CaseType::UPPER) == "CLEAR") {
+            clearScreenAndReset();
+            continue;
+        }
+
+        if (toCase(input, CaseType::UPPER) == "DATASETS") {
+            listDatasets(DATA_FOLDER); // Path to the data folder
+            continue;
+        }
+
         std::vector<std::string> commands = split(input, ';');
 
         for (auto& command : commands) {
@@ -49,11 +92,17 @@ int main() {
             }
 
             try {
-                db.executeCommand(command); // Process the command
+                fmt::print("\n"); // Add space before response
+                db.executeCommand(command);
+                fmt::print("\n"); // Add space after response
             } catch (const std::exception& e) {
+                fmt::print("\n"); // Add space before error message
                 fmt::print("Error: {}\n", e.what());
+                fmt::print("\n"); // Add space after error message
             } catch (...) {
+                fmt::print("\n"); // Add space before unexpected error message
                 fmt::print("An unexpected error occurred.\n");
+                fmt::print("\n"); // Add space after unexpected error message
             }
         }
     }

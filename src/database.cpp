@@ -126,7 +126,6 @@ void Database::createTable(const std::string& command) {
     fmt::print("Table '{}' created successfully.\n", tableName);
 }
 
-// ---------------------------------------------------------------------------------------
 void Database::dropTable(const std::string& command) {
     // Expected format: DROP TABLE table_name;
     std::stringstream ss(removeTrailingSemicolon(trim(command)));
@@ -152,7 +151,6 @@ void Database::dropTable(const std::string& command) {
     fmt::print("Table '{}' dropped successfully.\n", tableName);
 }
 
-// ---------------------------------------------------------------------------------------
 void Database::insertInto(const std::string& command) {
     // Expected format: INSERT INTO table_name VALUES (...);
     std::stringstream ss(command);
@@ -365,6 +363,7 @@ void Database::selectFrom(const std::string& command) {
     if (selectAll) {
         // Wildcard: select all columns
         for (size_t i = 0; i < table.columns.size(); ++i) {
+            // https://www.geeksforgeeks.org/static_cast-in-cpp/
             colIndices.push_back(static_cast<int>(i));
         }
     } else {
@@ -375,6 +374,7 @@ void Database::selectFrom(const std::string& command) {
             bool found = false;
             for (size_t i = 0; i < table.columns.size(); ++i) {
                 if (table.columns[i].name == col) {
+                    // https://www.geeksforgeeks.org/static_cast-in-cpp/
                     colIndices.push_back(static_cast<int>(i));
                     found = true;
                     break;
@@ -446,7 +446,7 @@ void Database::selectFrom(const std::string& command) {
                     }
                 }
 
-                // If all compared columns are equal, retain original order (stable sort not guaranteed with std::sort).
+                // If all compared columns are equal, retain original orderю
                 return false;
             }
         );
@@ -496,6 +496,7 @@ void Database::selectFrom(const std::string& command) {
     // Print separator
     fmt::print("|");
     for (size_t i = 0; i < colIndices.size(); ++i) {
+        // OpenAI model code (haven't found this thing in documentation, but it works :) )
         fmt::print(" {:-<{}} |", "", colWidths[i]);
     }
     fmt::print("\n");
@@ -506,13 +507,17 @@ void Database::selectFrom(const std::string& command) {
         for (size_t i = 0; i < colIndices.size(); ++i) {
             const auto& value = row.values[colIndices[i]];
             if (std::holds_alternative<int>(value)) {
+                // OpenAI model code (haven't found this thing in documentation, but it works :) )
                 fmt::print(" {:<{}} |", std::get<int>(value), colWidths[i]);
             } else if (std::holds_alternative<float>(value)) {
+                // OpenAI model code (haven't found this thing in documentation, but it works :) )
                 fmt::print(" {:<{}} |", fmt::format("{:.2f}", std::get<float>(value)), colWidths[i]);
             } else if (std::holds_alternative<std::string>(value)) {
+                // OpenAI model code (haven't found this thing in documentation, but it works :) )
                 fmt::print(" {:<{}} |", std::get<std::string>(value), colWidths[i]);
             } else {
                 // char
+                // OpenAI model code (haven't found this thing in documentation, but it works :) )
                 fmt::print(" {:<{}} |", std::get<char>(value), colWidths[i]);
             }
         }
@@ -520,9 +525,7 @@ void Database::selectFrom(const std::string& command) {
     }
 }
 
-// ---------------------------------------------------------------------------------------
 void Database::listTables() {
-    // Prints a list of all tables and basic info
     if (tables.empty()) {
         std::cout << "No tables currently loaded in memory.\n";
         return;

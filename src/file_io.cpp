@@ -1,3 +1,5 @@
+#include "file_io.h"
+
 #include <fstream>
 #include <iostream> // For error messages
 #include <fmt/format.h>
@@ -32,7 +34,7 @@ void Database::saveToFile(const std::string& command) {
     }
 
     // Construct the file path: Go up one directory from "cmake-build-debug" and into "data"
-    const std::string filepath = "../data/" + csvFileName;
+    const std::string filepath = DATA_FOLDER + csvFileName;
 
     // Open the file for writing
     std::ofstream ofs(filepath); // https://cplusplus.com/reference/fstream/ofstream/ofstream/
@@ -100,7 +102,7 @@ void Database::loadFromFile(const std::string& command) {
     fmt::print("Filename is {}", csvFileName);
 
     // Construct the file path with .csv extension
-    const std::string filepath = "../data/" + csvFileName;
+    const std::string filepath = DATA_FOLDER + csvFileName;
 
     // Open the file for reading
     std::ifstream ifs(filepath); // https://cplusplus.com/reference/fstream/ifstream/
@@ -157,7 +159,7 @@ void Database::deleteFile(const std::string& rawFileName) {
     }
 
     // Construct the full file path
-    const std::string fullFilePath = "../data/" + cleanedFileName;
+    const std::string fullFilePath = DATA_FOLDER + cleanedFileName;
 
     // Attempt to delete the file
     if (std::remove(fullFilePath.c_str()) != 0) {
@@ -166,5 +168,4 @@ void Database::deleteFile(const std::string& rawFileName) {
 
     std::cout << "File '" << fullFilePath << "' deleted successfully." << std::endl;
 }
-
 

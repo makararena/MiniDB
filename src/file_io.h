@@ -1,11 +1,13 @@
 #pragma once
 #include "database.h"
 
-// Saves file to the data folder
+const std::string DATA_FOLDER = "./data";
+
+// Saves a table to a file in the "data" folder.
 void saveToFile(Database& db, const std::string& filename);
 
-// Loads file from the data folder
+// Loads a table from a file in the "data" folder.
 void loadFromFile(Database& db, const std::string& filename);
 
-// Deletes file from data folder
+// Deletes a file from the "data" folder.
 void deleteFile(Database& db, const std::string& command);

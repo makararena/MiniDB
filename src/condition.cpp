@@ -1,9 +1,11 @@
 #include "condition.h"
 #include "database.h"
 #include "utils.h"
+#include <cmath>
 
 // Extended parse to handle multi-character operators
 std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::string& wherePart) {
+    // https://www.geeksforgeeks.org/pair-in-cpp-stl/ (std::pair)
     std::vector<std::pair<std::string, Condition>> conditions;
     // Naive split on spaces
     std::vector<std::string> tokens = split(wherePart, ' ');
@@ -20,7 +22,9 @@ std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::strin
     // If we saw "NOT" but haven't yet seen "IN", store it here
     bool nextConditionShouldNegate = false;
 
-    //  Converts the currently parsed condition into a Condition object, adds it to conditions, and resets state variables for the next condition
+    //  Converts the currently parsed condition into a Condition object,
+    //  adds it to conditions, and resets state variables for the next condition
+    // Lambda function with & (can access vars outside lambda function)
     auto finalizeCondition = [&](bool forceNegate = false) {
         Condition cond;
         cond.column = currentColumn;
@@ -34,6 +38,7 @@ std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::strin
         }
 
         // Add the condition to the list
+        // https://stackoverflow.com/questions/4303513/push-back-vs-emplace-back
         conditions.emplace_back(logicalOp, cond);
 
         // Reset state
@@ -120,7 +125,7 @@ std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::strin
 
                 // If the original token had a `)`, we assume IN list is done
                 if (tokens[i].find(')') != std::string::npos) {
-                    finalizeCondition(/*forceNegate*/nextConditionShouldNegate);
+                    finalizeCondition(nextConditionShouldNegate);
                 }
             }
             else {
@@ -138,7 +143,7 @@ std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::strin
                     if ((start == '\'' && end == '\'') || (start == '"' && end == '"')) {
                         // We have a fully quoted string
                         currentValue = stripQuotes(valueBuffer);
-                        finalizeCondition(/*forceNegate*/nextConditionShouldNegate);
+                        finalizeCondition(nextConditionShouldNegate);
                     }
                     else {
                         // We haven't closed the quote yet
@@ -149,7 +154,7 @@ std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::strin
                     // Unquoted single token
                     currentValue = token;
                     // Condition ends here
-                    finalizeCondition(/*forceNegate*/nextConditionShouldNegate);
+                    finalizeCondition(nextConditionShouldNegate);
                 }
             }
         }
@@ -181,7 +186,7 @@ bool evaluateCondition(const Row& row, const Table& table, const Condition& cond
         throw std::runtime_error("Column '" + cond.column + "' does not exist.");
     }
 
-    // Calculate the index of the column in the table
+    // std::distance calculates the number of steps from table.columns.begin() to colIt.
     size_t colIndex = std::distance(table.columns.begin(), colIt);
     const Column& column = *colIt; // Get the column metadata
     const Value& value = row.values[colIndex]; // Get the value from the row for this column
@@ -191,6 +196,8 @@ bool evaluateCondition(const Row& row, const Table& table, const Condition& cond
     try {
         // Special handling for the "IN" operator
         if (cond.op == "IN") {
+            // Type-Safety: Ensure that the variant currently holds a value of type T before accessing it.
+            // Avoid Errors: Accessing the wrong type using std::get would throw a std::bad_variant_access exception. For example:
             if (std::holds_alternative<std::string>(value)) {
                 // Handle IN operator for strings
                 const std::string& strValue = std::get<std::string>(value);

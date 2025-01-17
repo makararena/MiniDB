@@ -1,18 +1,12 @@
-# CMakeLists.txt
-
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 3.22)
 project(DatabaseProject)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include(FetchContent)
-FetchContent_Declare(
-        fmt
-        GIT_REPOSITORY  https://github.com/fmtlib/fmt
-        GIT_TAG         11.0.2
-)
-FetchContent_MakeAvailable(fmt)
+# Find the fmt library installed on the system
+find_package(fmt REQUIRED)
 
+# Add the executable
 add_executable(SimpleDatabase src/main.cpp src/database.cpp
         src/utils.h
         src/condition.h
@@ -20,4 +14,6 @@ add_executable(SimpleDatabase src/main.cpp src/database.cpp
         src/utils.cpp
         src/condition.cpp
         src/file_io.cpp)
+
+# Link the fmt library
 target_link_libraries(SimpleDatabase fmt)
