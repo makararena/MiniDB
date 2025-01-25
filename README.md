@@ -3,27 +3,40 @@
 This is a lightweight and versatile database application written in C++. It allows users to create, manage, and query in-memory relational database tables with SQL-like commands. The application also supports saving and loading tables to and from files for persistence.
 
 ---
+### Core Features
+1. **Table Management**
+   - Create and drop tables with customizable column definitions.
+   - List all active tables.
 
-## **Features**
+2. **Data Manipulation**
+   - Insert rows into tables with support for multiple data types:
+     - `INTEGER`
+     - `VARCHAR`
+     - `DATE`
+     - `CHAR`
+     - `FLOAT`
 
-- **Table Management**: Create and drop tables with customizable column definitions.
-- **Data Manipulation**: Insert rows into tables with support for multiple data types:
-  - `INTEGER`
-  - `VARCHAR`
-  - `DATE`
-  - `CHAR`
-  - `FLOAT`
-- **Query Execution**:
-  - `SELECT` with column selection, filtering using `WHERE`, sorting using `ORDER BY`, and limiting rows using `LIMIT`.
-  - Logical operators like `AND`, `OR`, `NOT`, and `IN` are supported.
-- **Persistence**:
-  - Save tables to `.csv` files and load them back.
-  - Delete files directly from the application.
-- **Utility Commands**:
-  - List all active tables.
-  - Display helpful command instructions.
-  - Run built-in tests to verify functionality.
+3. **Query Execution**
+   - `SELECT` command with features like:
+     - Column selection (`SELECT column_name`)
+     - Filtering (`WHERE` clause with support for `=`, `!=`, `<`, `>`, `<=`, `>=`, `IN`, `NOT IN`).
+     - Logical operators (`AND`, `OR`, `NOT`).
+     - Sorting (`ORDER BY` with `ASC` or `DESC`).
+     - Limiting rows (`LIMIT`).
 
+4. **Persistence**
+   - Save tables to `.csv` files with `SAVE table_name [AS file_name]`.
+   - Load tables from `.csv` files with `LOAD file_name [AS table_name]`.
+   - Delete saved `.csv` files with `DELETE FILE file_name`.
+
+5. **Utility Commands**
+   - Display helpful instructions (`HELP`).
+   - Run built-in tests (`TEST`) to validate functionality.
+
+6. **Error Handling**
+   - Detect syntax errors for commands like `CREATE TABLE`, `INSERT INTO`, and `SELECT`.
+   - Handle invalid data types or mismatched columns during insertion.
+   - Provide meaningful error messages for unsupported commands or operations.
 ---
 
 ## **Getting Started**
@@ -46,65 +59,6 @@ The application will start, and you can interact with it using the command-line 
 
 ---
 
-## **Usage Instructions**
-
-When you start the application, a prompt (`>`) will appear, allowing you to enter commands. Below are some of the supported commands:
-
-### **Table Commands**
-
-- Create a table:
-  ```
-  CREATE TABLE tableName (column1 TYPE, column2 TYPE, ...);
-  Example: CREATE TABLE users (id INTEGER, name VARCHAR, age INTEGER);
-  ```
-
-- Drop a table:
-  ```
-  DROP TABLE tableName;
-  Example: DROP TABLE users;
-  ```
-
-### **Data Commands**
-
-- Insert data:
-  ```
-  INSERT INTO tableName VALUES (value1, value2, ...);
-  Example: INSERT INTO users VALUES (1, 'Alice', 25);
-  ```
-
-- Query data:
-  ```
-  SELECT column1, column2 FROM tableName [WHERE condition] [ORDER BY column1 [ASC|DESC], column2 [ASC|DESC]] [LIMIT n];
-  Examples:
-    SELECT * FROM users;
-    SELECT name, age FROM users WHERE age > 20;
-    SELECT * FROM users ORDER BY age DESC LIMIT 10;
-  ```
-
-### **Persistence Commands**
-
-- Save a table:
-  ```
-  SAVE tableName [AS fileName];
-  Examples:
-    SAVE users;
-    SAVE users AS users_backup.csv;
-  ```
-
-- Load a table:
-  ```
-  LOAD fileName [AS tableName];
-  Examples:
-    LOAD users.csv;
-    LOAD users_backup.csv AS users;
-  ```
-
-- Delete a file:
-  ```
-  DELETE FILE fileName;
-  Example: DELETE FILE users_backup.csv;
-  ```
-
 ### **Utility Commands**
 
 - List tables:
@@ -119,20 +73,10 @@ When you start the application, a prompt (`>`) will appear, allowing you to ente
   ```
   EXIT;
   ```
-
----
-
-## **Testing**
-
-You can run built-in tests by typing the following command at the prompt:
-
-```bash
-TEST
-```
-
-The tests will validate the core functionality of the application, such as creating tables, inserting data, querying with conditions, and saving/loading tables.
-
----
+- Test the application:
+  ```
+  TEST;
+  ```
 
 ## **Contributing**
 
