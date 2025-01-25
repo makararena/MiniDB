@@ -23,15 +23,23 @@ void clearScreenAndReset() {
 
 void listDatasets(const std::string& folderPath) {
     fmt::print("\nLooking for datasets in folder '{}'\n", folderPath); // Debugging the folder path
-    fmt::print("Available datasets:\n\n");
+
     try {
+        // Check if the directory exists, if not, create it
+        if (!std::filesystem::exists(folderPath)) {
+            std::filesystem::create_directories(folderPath);
+        }
+
+        fmt::print("Available datasets:\n\n");
         bool foundFile = false; // To handle the case where no files are found
+
         for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
             if (entry.is_regular_file()) { // Ensure it's a file
                 fmt::print("- {}\n", entry.path().filename().string());
                 foundFile = true;
             }
         }
+
         if (!foundFile) {
             fmt::print("No datasets found in the folder '{}'.\n", folderPath);
         }
@@ -40,6 +48,7 @@ void listDatasets(const std::string& folderPath) {
     }
     fmt::print("\n");
 }
+
 
 
 int main() {

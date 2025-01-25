@@ -1,11 +1,10 @@
-#include "utils.h"
-
 #include <iostream>
 #include <sstream>
 #include <vector>
 #include <fmt/format.h>
 
 #include "database.h"
+#include "utils.h"
 
 
 std::string trim(const std::string& str) {
@@ -77,7 +76,7 @@ bool isLogical(const std::string& token) {
     return (token == "AND" || token == "OR" || token == "NOT");
 }
 
-
+// https://stackoverflow.com/questions/22425825/changing-a-lowercase-character-to-uppercase-in-c
 char toUpperManual(char c) {
     if (c >= 'a' && c <= 'z') {
         c = static_cast<char>(c - 'a' + 'A');
@@ -119,6 +118,7 @@ std::string normalizeKeywords(const std::string& input) {
 
     // Prepare a list to store the result with normalized keywords.
     // Reserve space in advance for efficiency.
+    // Simple performance benefits
     std::vector<std::string> resultTokens;
     resultTokens.reserve(tokens.size()); // https://cplusplus.com/reference/vector/vector/reserve/
 

@@ -150,22 +150,3 @@ void Database::loadFromFile(const std::string& command) {
     std::cout << "Table '" << tableName << "' loaded successfully from '" << filepath << "'." << std::endl;
 }
 
-void Database::deleteFile(const std::string& rawFileName) {
-    // Preprocess the file name: trim spaces and remove trailing semicolon
-    std::string cleanedFileName = removeTrailingSemicolon(trim(rawFileName));
-
-    if (cleanedFileName.empty()) {
-        throw std::runtime_error("Syntax error in DELETE FILE command. File name is missing.");
-    }
-
-    // Construct the full file path
-    const std::string fullFilePath = DATA_FOLDER + cleanedFileName;
-
-    // Attempt to delete the file
-    if (std::remove(fullFilePath.c_str()) != 0) {
-        throw std::runtime_error("Failed to delete file: " + fullFilePath + ". File may not exist.");
-    }
-
-    std::cout << "File '" << fullFilePath << "' deleted successfully." << std::endl;
-}
-

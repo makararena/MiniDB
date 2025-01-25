@@ -3,7 +3,7 @@
 #include <vector>
 #include <stdexcept>
 
-enum class CaseType { UPPER, LOWER };
+enum class CaseType {UPPER, LOWER};
 
 // Trims the string from the left and right, removing spaces, "\t", "\n", and "\r".
 std::string trim(const std::string& str);

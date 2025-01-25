@@ -52,7 +52,8 @@ void Database::executeCommand(const std::string& command) {
     } else if (normalizedOperation == "LIST" && restOfCommand == "TABLES") {
         listTables();
     }
-    else if (normalizedOperation == "DELETE" && restOfCommand.starts_with("FILE")) {
+    // https://cplusplus.com/reference/string/string/rfind/
+    else if (normalizedOperation == "DELETE" && restOfCommand.rfind("FILE", 0) == 0) {
         deleteFile(restOfCommand.substr(5)); // Pass the file name part
     }
     else {
@@ -280,7 +281,7 @@ void Database::selectFrom(const std::string& command) {
         tablePartEnd = *std::min_element(markers.begin(), markers.end());
     }
 
-    // The table name portion: fromPos+6 (skip " FROM ") up to tablePartEnd
+    // The table name portion: fromPos + 6 (skip " FROM ") up to tablePartEnd
     std::string tablePart = trim(
         cleanedCommand.substr(fromPos + 6, tablePartEnd - (fromPos + 6))
     );
@@ -547,3 +548,24 @@ void Database::listTables() {
         std::cout << "\n  Number of Rows: " << table.rows.size() << "\n";
     }
 }
+
+void Database::deleteFile(const std::string& rawFileName) {
+    // Preprocess the file name: trim spaces and remove trailing semicolon
+    std::string cleanedFileName = removeTrailingSemicolon(trim(rawFileName));
+
+    if (cleanedFileName.empty()) {
+        throw std::runtime_error("Syntax error in DELETE FILE command. File name is missing.");
+    }
+
+    // Construct the full file path
+    const std::string fullFilePath = "./data" + cleanedFileName;
+
+    // Attempt to delete the file
+    if (std::remove(fullFilePath.c_str()) != 0) {
+        throw std::runtime_error("Failed to delete file: " + fullFilePath + ". File may not exist.");
+    }
+
+    std::cout << "File '" << fullFilePath << "' deleted successfully." << std::endl;
+}
+
+

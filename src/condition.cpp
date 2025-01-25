@@ -288,8 +288,6 @@ bool evaluateCondition(const Row& row, const Table& table, const Condition& cond
     return cond.negate ? !result : result;
 }
 
-
-
 // Helper: Apply WHERE clause to rows
 std::vector<Row> filterRows(const Table& table, const std::vector<std::pair<std::string, Condition>>& conditions) {
     std::vector<Row> filteredRows;

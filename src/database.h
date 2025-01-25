@@ -51,7 +51,7 @@ private:
     // File IO
     void saveToFile(const std::string& command);
     void loadFromFile(const std::string& command);
-    static void deleteFile(const std::string& command);
+    void deleteFile(const std::string& rawFileName);
 
     DataType parseDataType(const std::string& typeStr);
 
