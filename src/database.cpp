@@ -394,6 +394,7 @@ void Database::selectFrom(const std::string& command) {
         filteredRows = filterRows(table, conditions);
     }
 
+    // 9) Apply ORDER BY if specified
     if (!orderByColumns.empty()) {
         std::sort(filteredRows.begin(), filteredRows.end(),
             [&table, &orderByColumns](const Row& a, const Row& b) {

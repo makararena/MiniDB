@@ -7,6 +7,7 @@
 std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::string& wherePart) {
     // https://www.geeksforgeeks.org/pair-in-cpp-stl/ (std::pair)
     std::vector<std::pair<std::string, Condition>> conditions;
+
     // Naive split on spaces
     std::vector<std::string> tokens = split(wherePart, ' ');
 
@@ -24,7 +25,7 @@ std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::strin
 
     //  Converts the currently parsed condition into a Condition object,
     //  adds it to conditions, and resets state variables for the next condition
-    // Lambda function with & (can access vars outside lambda function)
+    //  lambda function with & (can access vars outside lambda function)
     auto finalizeCondition = [&](bool forceNegate = false) {
         Condition cond;
         cond.column = currentColumn;
@@ -37,9 +38,7 @@ std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::strin
             cond.value = currentValue;
         }
 
-        // Add the condition to the list
-        // https://stackoverflow.com/questions/4303513/push-back-vs-emplace-back
-        conditions.emplace_back(logicalOp, cond);
+        conditions.push_back(std::make_pair(logicalOp, cond));
 
         // Reset state
         currentColumn.clear();
@@ -77,7 +76,7 @@ std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::strin
         if (!inCondition) {
             // Start a new condition
             inCondition   = true;
-            currentColumn = token;
+            currentColumn = token; // Take the column name and save it to our condition
         }
         else if (currentOp.empty()) {
             // Check for multi-character operators
@@ -173,6 +172,9 @@ std::vector<std::pair<std::string, Condition>> parseWhereClause(const std::strin
 }
 
 // Helper: Evaluate a condition for a single row
+// row - is the object we are evaluating
+// table - is the metadata (somehow we need to know datatypes)
+// cond - are the rules how we are evaluating the row
 bool evaluateCondition(const Row& row, const Table& table, const Condition& cond) {
     // Find the column in the table that matches the condition's column name
     auto colIt = std::find_if(
@@ -194,7 +196,9 @@ bool evaluateCondition(const Row& row, const Table& table, const Condition& cond
     bool result = false; // Store the result of the condition evaluation
 
     try {
+        // ****************************************// 
         // Special handling for the "IN" operator
+        // ****************************************// 
         if (cond.op == "IN") {
             // Type-Safety: Ensure that the variant currently holds a value of type T before accessing it.
             // Avoid Errors: Accessing the wrong type using std::get would throw a std::bad_variant_access exception. For example:
@@ -240,7 +244,11 @@ bool evaluateCondition(const Row& row, const Table& table, const Condition& cond
                     }
                 }
             }
-        } else {
+        } 
+        // *******************************************************************// 
+        // If there is no "IN" operator, then there is Conditional Operator
+        // *******************************************************************// 
+        else {
             if (column.type == DataType::DATE) {
                 // Handle comparisons for date columns
                 if (!std::holds_alternative<std::string>(value)) {
@@ -278,6 +286,9 @@ bool evaluateCondition(const Row& row, const Table& table, const Condition& cond
             }
         }
     }
+    // *********************// 
+    // The rest of the cases
+    // *********************// 
     catch (...) {
         // Catch any errors (e.g., type mismatch) and throw a descriptive error
         throw std::runtime_error("Type mismatch in WHERE clause: Cannot compare '"

@@ -57,27 +57,6 @@ To simplify setup, you can use Docker to build and run the application.
 
 The application will start, and you can interact with it using the command-line interface.
 
----
-
-### **Utility Commands**
-
-- List tables:
-  ```
-  LIST TABLES;
-  ```
-- Display help:
-  ```
-  HELP;
-  ```
-- Exit the application:
-  ```
-  EXIT;
-  ```
-- Test the application:
-  ```
-  TEST;
-  ```
-
 ## **Contributing**
 
 Feel free to fork this repository and make contributions. Pull requests are welcome for enhancements and bug fixes.
